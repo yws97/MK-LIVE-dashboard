@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>마쇼라 라이브 대시보드</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#F3F5FA;
+    --surface:#FFFFFF;
+    --line:#E4E8F1;
+    --ink:#171A24;
+    --ink-soft:#5B6172;
+    --ink-faint:#9AA0B4;
+    --indigo:#3452C7;
+    --indigo-deep:#22317F;
+    --apricot:#FF9B54;
+    --mint:#1FAE8E;
+    --red:#E5484D;
+    --mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Pretendard Variable', 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:var(--sans);}
+  body{padding-bottom:80px;}
+  a{color:inherit;}
+
+  /* ---------- header ---------- */
+  .hero{
+    background:linear-gradient(135deg, var(--indigo-deep) 0%, var(--indigo) 62%, #4C6BE0 100%);
+    color:#fff; padding:28px 24px 84px; position:relative; overflow:hidden;
+  }
+  .hero::after{
+    content:""; position:absolute; right:-60px; top:-60px; width:280px; height:280px; border-radius:50%;
+    background:radial-gradient(circle, rgba(255,155,84,.35), transparent 70%);
+  }
+  .hero-top{display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; position:relative; z-index:1;}
+  .brand{display:flex; align-items:center; gap:10px;}
+  .brand-mark{width:34px;height:34px;border-radius:9px;background:#fff;color:var(--indigo-deep);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;}
+  .brand h1{font-size:19px; margin:0; letter-spacing:-.2px;}
+  .brand p{margin:2px 0 0; font-size:12px; color:rgba(255,255,255,.72);}
+  .live-chip{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);
+    padding:7px 14px;border-radius:999px;font-size:12px;color:#fff;backdrop-filter:blur(6px);}
+  .live-dot{width:8px;height:8px;border-radius:50%;background:#5CF2C0;box-shadow:0 0 0 0 rgba(92,242,192,.6);animation:pulse 1.8s infinite;}
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(92,242,192,.55);}
+    70%{box-shadow:0 0 0 9px rgba(92,242,192,0);}
+    100%{box-shadow:0 0 0 0 rgba(92,242,192,0);}
+  }
+  #refreshBtn{cursor:pointer;background:transparent;border:none;color:#fff;font-size:12px;opacity:.85;text-decoration:underline;padding:0;margin-left:6px;}
+
+  .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:26px;position:relative;z-index:1;}
+  .kpi{background:rgba(255,255,255,.10); border:1px solid rgba(255,255,255,.18); border-radius:14px; padding:16px 18px;}
+  .kpi .label{font-size:11.5px;color:rgba(255,255,255,.7);margin-bottom:6px;}
+  .kpi .value{font-family:var(--mono);font-size:22px;font-weight:700;letter-spacing:-.5px;}
+  .kpi .sub{font-size:11px;color:rgba(255,255,255,.65);margin-top:4px;}
+
+  /* ---------- nav ---------- */
+  .navwrap{position:sticky; top:0; z-index:50; background:rgba(243,245,250,.9); backdrop-filter:blur(10px); border-bottom:1px solid var(--line);}
+  nav{max-width:1180px;margin:-40px auto 0; padding:0 24px; display:flex; gap:4px; overflow-x:auto; position:relative; z-index:2;}
+  nav button{
+    flex:0 0 auto; border:none; background:var(--surface); color:var(--ink-soft); font-size:13px; font-weight:600;
+    padding:12px 16px; border-radius:12px 12px 0 0; cursor:pointer; border:1px solid var(--line); border-bottom:none;
+    margin-top:8px; white-space:nowrap; transition:.15s;
+  }
+  nav button.active{color:var(--indigo-deep); background:var(--bg); border-color:var(--line); position:relative;}
+  nav button.active::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;background:var(--indigo);border-radius:3px 3px 0 0;}
+
+  main{max-width:1180px; margin:0 auto; padding:22px 24px 10px;}
+  section{display:none; animation:fadein .25s ease;}
+  section.active{display:block;}
+  @keyframes fadein{from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:none;}}
+
+  .section-head{margin:6px 0 16px;}
+  .eyebrow{font-size:11px; color:var(--indigo); font-weight:700; letter-spacing:.06em; text-transform:uppercase;}
+  h2{font-size:20px; margin:4px 0 4px; letter-spacing:-.3px;}
+  .desc{font-size:13px; color:var(--ink-soft); margin:0;}
+
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:18px 20px; margin-bottom:16px;}
+  .grid2{display:grid; grid-template-columns:1.3fr 1fr; gap:16px;}
+  .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:14px;}
+  .chart-box{position:relative; height:300px;}
+  .chart-box.tall{height:360px;}
+
+  table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  thead th{position:sticky; top:0; background:var(--surface); text-align:right; color:var(--ink-soft); font-weight:600;
+    padding:9px 10px; border-bottom:2px solid var(--line); cursor:pointer; white-space:nowrap; font-size:11.5px;}
+  thead th:first-child, thead th.txt{text-align:left;}
+  thead th:hover{color:var(--indigo);}
+  tbody td{padding:8px 10px; border-bottom:1px solid var(--line); text-align:right; font-family:var(--mono); white-space:nowrap;}
+  tbody td.txt{text-align:left; font-family:var(--sans);}
+  tbody tr:hover{background:#F7F9FF;}
+  .tag{display:inline-block; font-size:10.5px; font-weight:700; padding:2px 7px; border-radius:6px; background:#FFE9D6; color:#C1631A;}
+  .table-wrap{max-height:520px; overflow:auto; border:1px solid var(--line); border-radius:12px;}
+
+  .pill-tabs{display:flex; gap:6px; margin-bottom:14px;}
+  .pill-tabs button{border:1px solid var(--line); background:var(--surface); padding:7px 14px; border-radius:999px; font-size:12.5px; font-weight:600; color:var(--ink-soft); cursor:pointer;}
+  .pill-tabs button.active{background:var(--indigo); color:#fff; border-color:var(--indigo);}
+
+  .loading{display:flex; align-items:center; gap:10px; padding:40px; color:var(--ink-faint); font-size:13px; justify-content:center;}
+  .spinner{width:16px;height:16px;border:2px solid var(--line);border-top-color:var(--indigo);border-radius:50%;animation:spin .7s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .err{background:#FFF1F1; border:1px solid #FFD3D3; color:#B23A3E; padding:12px 16px; border-radius:10px; font-size:12.5px;}
+
+  .foot-note{font-size:11px; color:var(--ink-faint); margin-top:6px;}
+  .rank-bar-wrap{display:flex; align-items:center; gap:10px; margin:9px 0;}
+  .rank-name{width:64px; font-size:12.5px; font-weight:700; flex:0 0 auto;}
+  .rank-track{flex:1; height:10px; background:#EEF1F9; border-radius:6px; overflow:hidden;}
+  .rank-fill{height:100%; border-radius:6px; background:linear-gradient(90deg, var(--indigo), #6E8CF2);}
+  .rank-val{width:110px; text-align:right; font-family:var(--mono); font-size:12px; color:var(--ink-soft); flex:0 0 auto;}
+
+  @media (max-width:900px){
+    .kpi-row{grid-template-columns:repeat(2,1fr);}
+    .grid2, .grid3{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-top">
+    <div class="brand">
+      <div class="brand-mark">M</div>
+      <div>
+        <h1>마쇼라 라이브 대시보드</h1>
+        <p>MK몰 마쇼라 · 라이브 매출 현황 · 2023–2026</p>
+      </div>
+    </div>
+    <div class="live-chip">
+      <span class="live-dot"></span>
+      <span id="lastUpdated">시트 연결 중…</span>
+      <button id="refreshBtn" onclick="loadAll()">새로고침</button>
+    </div>
+  </div>
+
+  <div class="kpi-row" id="kpiRow">
+    <div class="kpi"><div class="label">2026년 목표매출</div><div class="value" id="kpiGoal">–</div><div class="sub" id="kpiGoalSub">&nbsp;</div></div>
+    <div class="kpi"><div class="label">2026년 누적 방송매출</div><div class="value" id="kpiRevenue">–</div><div class="sub" id="kpiRevenueSub">&nbsp;</div></div>
+    <div class="kpi"><div class="label">목표 달성률</div><div class="value" id="kpiAchieve">–</div><div class="sub" id="kpiAchieveSub">&nbsp;</div></div>
+    <div class="kpi"><div class="label">누적 진행 회차</div><div class="value" id="kpiSessions">–</div><div class="sub" id="kpiSessionsSub">&nbsp;</div></div>
+  </div>
+</div>
+
+<div class="navwrap">
+  <nav id="tabNav">
+    <button data-tab="trend" class="active">연도별 트렌드</button>
+    <button data-tab="goal">월별 목표 달성률</button>
+    <button data-tab="sessions">회차별 상세 (2026)</button>
+    <button data-tab="host">쇼호스트 성과</button>
+    <button data-tab="big">빅행사 비교</button>
+    <button data-tab="ads">광고매체 성과</button>
+    <button data-tab="history">히스토리 (23–25년)</button>
+  </nav>
+</div>
+
+<main>
+
+  <!-- ============ 1. TREND ============ -->
+  <section id="s-trend" class="active">
+    <div class="section-head">
+      <div class="eyebrow">2023 – 2026</div>
+      <h2>연도별 트렌드</h2>
+      <p class="desc">"매출현황(23년~)" 탭 기준 · 월별 방송매출 / 기획전매출 / 시청수 / 결제자수를 연도별로 비교합니다.</p>
+    </div>
+    <div class="card">
+      <div class="chart-box tall"><canvas id="chartTrendRevenue"></canvas></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="chart-box"><canvas id="chartTrendPromo"></canvas></div></div>
+      <div class="card"><div class="chart-box"><canvas id="chartTrendViewers"></canvas></div></div>
+    </div>
+    <div id="trendStatus" class="loading"><span class="spinner"></span> 구글시트에서 데이터를 불러오는 중…</div>
+  </section>
+
+  <!-- ============ 2. GOAL ============ -->
+  <section id="s-goal">
+    <div class="section-head">
+      <div class="eyebrow">2026년 · 월별</div>
+      <h2>목표 달성률 &amp; 수익율</h2>
+      <p class="desc">월별 목표매출 대비 실제 방송매출과, 각 월의 수익율(순수익 ÷ 매출)을 함께 봅니다.</p>
+    </div>
+    <div class="card"><div class="chart-box tall"><canvas id="chartGoal"></canvas></div></div>
+    <div class="card">
+      <div class="table-wrap"><table id="goalTable"><thead></thead><tbody></tbody></table></div>
+    </div>
+    <div id="goalStatus" class="loading"><span class="spinner"></span> 불러오는 중…</div>
+  </section>
+
+  <!-- ============ 3. SESSIONS ============ -->
+  <section id="s-sessions">
+    <div class="section-head">
+      <div class="eyebrow">2026년 · 실시간</div>
+      <h2>회차별 상세 현황</h2>
+      <p class="desc">시트에 새 라이브 회차를 입력하면 이 표에 자동으로 반영됩니다. 헤더를 클릭하면 정렬됩니다.</p>
+    </div>
+    <div class="card">
+      <div class="table-wrap"><table id="sessionsTable"><thead></thead><tbody></tbody></table></div>
+      <p class="foot-note">누적 <span id="sessionsCount">0</span>회차 · 굵게 표시된 값은 각 열 상위 3개 회차입니다.</p>
+    </div>
+    <div id="sessionsStatus" class="loading"><span class="spinner"></span> 불러오는 중…</div>
+  </section>
+
+  <!-- ============ 4. HOST ============ -->
+  <section id="s-host">
+    <div class="section-head">
+      <div class="eyebrow">2026년 · 담당자별</div>
+      <h2>쇼호스트 성과 비교</h2>
+      <p class="desc">쇼호스트별 담당 회차 수, 합산 방송매출, 평균 시청수·결제자수를 비교합니다.</p>
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="chart-box"><canvas id="chartHostRevenue"></canvas></div></div>
+      <div class="card">
+        <div class="eyebrow" style="margin-bottom:8px;">회당 평균 방송매출</div>
+        <div id="hostRankList"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="table-wrap"><table id="hostTable"><thead></thead><tbody></tbody></table></div>
+    </div>
+    <div id="hostStatus" class="loading"><span class="spinner"></span> 불러오는 중…</div>
+  </section>
+
+  <!-- ============ 5. BIG EVENT ============ -->
+  <section id="s-big">
+    <div class="section-head">
+      <div class="eyebrow">2026년</div>
+      <h2>빅행사 vs 일반 라이브</h2>
+      <p class="desc">비고란에 "빅행사"로 표시된 회차와 일반 회차의 평균 성과를 비교합니다.</p>
+    </div>
+    <div class="grid3" id="bigCompareCards"></div>
+    <div class="card"><div class="chart-box"><canvas id="chartBig"></canvas></div></div>
+    <div id="bigStatus" class="loading"><span class="spinner"></span> 불러오는 중…</div>
+  </section>
+
+  <!-- ============ 6. ADS ============ -->
+  <section id="s-ads">
+    <div class="section-head">
+      <div class="eyebrow">2026년 · 월별</div>
+      <h2>광고매체 집행 성과</h2>
+      <p class="desc">메타광고 / 비즈보드 / 플친(카카오+알림톡) 월별 집행액과 매출 대비 광고비율(ROAS 참고용)을 봅니다.</p>
+    </div>
+    <div class="card"><div class="chart-box tall"><canvas id="chartAds"></canvas></div></div>
+    <div class="card"><div class="chart-box"><canvas id="chartAdsRatio"></canvas></div></div>
+    <div id="adsStatus" class="loading"><span class="spinner"></span> 불러오는 중…</div>
+  </section>
+
+  <!-- ============ 7. HISTORY ============ -->
+  <section id="s-history">
+    <div class="section-head">
+      <div class="eyebrow">"라이브 매출 상세(23년~)" 탭</div>
+      <h2>연도별 히스토리 원장부</h2>
+      <p class="desc">연도마다 표 구성이 조금씩 달라 원본 그대로 보여드려요. 연도를 선택해 확인하세요.</p>
+    </div>
+    <div class="pill-tabs" id="histPills">
+      <button data-y="25" class="active">2025년</button>
+      <button data-y="24">2024년</button>
+      <button data-y="23">2023년</button>
+    </div>
+    <div class="card">
+      <div class="table-wrap"><table id="historyTable"><thead></thead><tbody></tbody></table></div>
+    </div>
+    <div id="historyStatus" class="loading"><span class="spinner"></span> 불러오는 중…</div>
+  </section>
+
+</main>
+
+<script>
+/* ============================================================
+   구글 스프레드시트 연동 (gviz — 별도 API 키 불필요, 시트가
+   "링크가 있는 모든 사용자에게 보기 허용" 상태여야 합니다)
+   ============================================================ */
+const SHEET_ID = '1wX8v3QT0oTNjKIV4OHSUUbkZafcdVYko8fYQWmbf4DE';
+const GID = {
+  y2026: '1730216129',   // 2026년 라이브 매출 현황 (회차별 상세 + 월별 요약)
+  histClean: '449557548',// 매출현황(23년~) - 연도x월 클린 테이블
+  histDetail: '0'        // 라이브 매출 상세(23년~) - 23/24/25년 원장부
+};
+
+async function fetchGviz(gid){
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?gid=${gid}&headers=0&tqx=out:json`;
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('시트를 불러오지 못했습니다 (' + res.status + ')');
+  const text = await res.text();
+  const start = text.indexOf('(');
+  const end = text.lastIndexOf(')');
+  const json = JSON.parse(text.substring(start+1, end));
+  return json.table.rows.map(r => (r.c||[]).map(c => (c && c.v !== undefined) ? c.v : null));
+}
+
+const num = v => (typeof v === 'number') ? v : (v ? Number(String(v).replace(/[^0-9.-]/g,'')) || 0 : 0);
+const fmtWon = v => v==null ? '-' : Math.round(v).toLocaleString('ko-KR') + '원';
+const fmtNum = v => v==null ? '-' : Math.round(v).toLocaleString('ko-KR');
+const fmtPct = v => v==null ? '-' : (Math.round(v*1000)/10) + '%';
+const fmtEok = v => v==null ? '-' : (v/100000000).toFixed(2) + '억';
+
+let ROWS = { y2026:null, histClean:null, histDetail:null };
+let CHARTS = {};
+
+function destroyChart(key){ if(CHARTS[key]){ CHARTS[key].destroy(); delete CHARTS[key]; } }
+
+const PALETTE = ['#3452C7','#FF9B54','#1FAE8E','#E5484D','#8A5CF6','#00A8CC'];
+
+/* ---------------- tabs ---------------- */
+document.getElementById('tabNav').addEventListener('click', e=>{
+  const btn = e.target.closest('button'); if(!btn) return;
+  document.querySelectorAll('#tabNav button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('main > section').forEach(s=>s.classList.remove('active'));
+  document.getElementById('s-'+btn.dataset.tab).classList.add('active');
+});
+
+/* ============================================================
+   1) 연도별 트렌드  (histClean 탭)
+   라이브 1시간 매출 rows[3..6]  (23~26년) cols C..N=1~12월, O=총 -> idx 2..13, 14
+   라이브 기획전 매출 rows[12..15]
+   라이브 시청수 rows[21..24]
+   라이브 결제자수 rows[30..33]
+============================================================ */
+function buildTrend(rows){
+  const months = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  function series(startRow){
+    const years = ['23년','24년','25년','26년'];
+    return years.map((y,i)=>{
+      const r = rows[startRow+i] || [];
+      const vals = months.map((_,m)=> num(r[2+m]));
+      return { label:'20'+y, data: vals };
+    });
+  }
+  const revenueSeries = series(3);
+  const promoSeries = series(12);
+  const viewerSeries = series(21);
+
+  destroyChart('trendRevenue');
+  CHARTS.trendRevenue = new Chart(document.getElementById('chartTrendRevenue'), {
+    type:'line',
+    data:{ labels:months, datasets: revenueSeries.map((s,i)=>({
+      label:s.label+' 총방송매출', data:s.data, borderColor:PALETTE[i], backgroundColor:PALETTE[i]+'22',
+      tension:.35, fill:i===3, borderWidth: i===3?3:2, pointRadius:3
+    }))},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{position:'bottom', labels:{boxWidth:10,font:{size:11}}},
+        tooltip:{callbacks:{label:c=> c.dataset.label+': '+fmtWon(c.parsed.y)}}},
+      scales:{ y:{ ticks:{ callback:v=>fmtEok(v) } } }
+    }
+  });
+
+  destroyChart('trendPromo');
+  CHARTS.trendPromo = new Chart(document.getElementById('chartTrendPromo'), {
+    type:'bar',
+    data:{ labels:months, datasets: promoSeries.map((s,i)=>({
+      label:s.label, data:s.data, backgroundColor:PALETTE[i]+(i===3?'FF':'55')
+    }))},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ title:{display:true,text:'라이브 기획전 매출',align:'start',font:{size:12}}, legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}},
+      scales:{ y:{ ticks:{ callback:v=>fmtEok(v) } } }
+    }
+  });
+
+  destroyChart('trendViewers');
+  CHARTS.trendViewers = new Chart(document.getElementById('chartTrendViewers'), {
+    type:'line',
+    data:{ labels:months, datasets: viewerSeries.map((s,i)=>({
+      label:s.label, data:s.data, borderColor:PALETTE[i], tension:.35, pointRadius:2, borderWidth:2
+    }))},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ title:{display:true,text:'라이브 시청수',align:'start',font:{size:12}}, legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}},
+    }
+  });
+
+  document.getElementById('trendStatus').style.display='none';
+}
+
+/* ============================================================
+   2) 2026 월별 목표 달성률  (y2026 탭, header row31(idx30), data idx31~42)
+   col idx: B월=1 C목표=2 D기획전=3 E총방송매출=4 ... Y수익=24 Z수익율=25
+============================================================ */
+const COL = { // y2026 monthly summary
+  month:1, goal:2, promoRev:3, revenue:4, sourcingRev:5, viewers:6, payers:7, items:8, aov:9,
+  meta:10, bizboard:11, plchin:12, promo:13, host:14, fee:15, adSpend:16, totalCost:17, note:18,
+  adRatio:19, promoRatio:20, cost:21, shipping:22, commission:23, profit:24, profitRate:25
+};
+function buildGoal(rows){
+  const data = [];
+  for(let i=31;i<=42;i++){
+    const r = rows[i]; if(!r) continue;
+    if(r[COL.month]==null) continue;
+    data.push({
+      month:r[COL.month], goal:num(r[COL.goal]), revenue:num(r[COL.revenue]),
+      profit:num(r[COL.profit]), profitRate:r[COL.profitRate], note:r[COL.note]
+    });
+  }
+  const months = data.map(d=>d.month);
+  destroyChart('goal');
+  CHARTS.goal = new Chart(document.getElementById('chartGoal'), {
+    data:{ labels:months,
+      datasets:[
+        { type:'bar', label:'목표매출', data:data.map(d=>d.goal), backgroundColor:'#E4E8F1', order:2 },
+        { type:'bar', label:'총 방송매출', data:data.map(d=>d.revenue), backgroundColor:'#3452C7', order:1 },
+        { type:'line', label:'수익율', data:data.map(d=> typeof d.profitRate==='number'? d.profitRate*100 : null),
+          borderColor:'#FF9B54', backgroundColor:'#FF9B54', yAxisID:'y1', tension:.3, borderWidth:3, pointRadius:4, order:0 }
+      ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{position:'bottom'}, tooltip:{callbacks:{label:c=>{
+        if(c.dataset.label==='수익율') return '수익율: '+ (c.parsed.y==null?'-':c.parsed.y.toFixed(1)+'%');
+        return c.dataset.label+': '+fmtWon(c.parsed.y);
+      }}}},
+      scales:{
+        y:{ ticks:{ callback:v=>fmtEok(v) } },
+        y1:{ position:'right', grid:{drawOnChartArea:false}, ticks:{ callback:v=>v+'%' } }
+      }
+    }
+  });
+
+  const thead = document.querySelector('#goalTable thead');
+  const tbody = document.querySelector('#goalTable tbody');
+  thead.innerHTML = '<tr><th class="txt">월</th><th>목표매출</th><th>방송매출</th><th>달성률</th><th>순수익</th><th>수익율</th><th class="txt">비고</th></tr>';
+  tbody.innerHTML = data.map(d=>{
+    const achieve = d.goal ? (d.revenue/d.goal*100) : null;
+    return `<tr>
+      <td class="txt">${d.month}</td>
+      <td>${fmtWon(d.goal)}</td>
+      <td>${fmtWon(d.revenue)}</td>
+      <td style="color:${achieve>=100?'#1FAE8E':achieve>=70?'#171A24':'#E5484D'};font-weight:700;">${achieve==null?'-':achieve.toFixed(1)+'%'}</td>
+      <td>${d.profit? fmtWon(d.profit):'-'}</td>
+      <td>${typeof d.profitRate==='number'? (d.profitRate*100).toFixed(1)+'%':'-'}</td>
+      <td class="txt">${d.note? '<span class=\"tag\">'+d.note+'</span>':''}</td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('goalStatus').style.display='none';
+  return data;
+}
+
+/* ============================================================
+   3) 2026 회차별 상세  (y2026 탭, header row45(idx44), data idx45~ )
+   col idx: B날짜=1 C컨셉=2 D메인품목=3 E기획전=4 F총방송매출=5 G소싱=6 H시청수=7 I결제자수=8
+   J결제상품수=9 K객단가=10 L메타=11 M비즈보드=12 N플친=13 O핫딜=14 P프로모션=15 Q쇼호스트비용=16
+   R라이브수수료=17 S총비용=18 T비고=19 U쇼호스트이름=20 V원가TTL=21 W배송비TTL=22
+============================================================ */
+const SCOL = { date:1, concept:2, item:3, promoRev:4, revenue:5, sourcing:6, viewers:7, payers:8,
+  items:9, aov:10, meta:11, bizboard:12, plchin:13, hotdeal:14, promo:15, hostCost:16, fee:17,
+  totalCost:18, note:19, host:20, costTTL:21, shipTTL:22 };
+
+let SESSIONS = [];
+function buildSessions(rows){
+  const list = [];
+  for(let i=45;i<rows.length;i++){
+    const r = rows[i]; if(!r) continue;
+    const date = r[SCOL.date];
+    if(!date) continue; // 빈 행이면 스킵
+    list.push({
+      date, concept:r[SCOL.concept]||'', item:r[SCOL.item]||'', revenue:num(r[SCOL.revenue]),
+      promoRev:num(r[SCOL.promoRev]), viewers:num(r[SCOL.viewers]), payers:num(r[SCOL.payers]),
+      items:num(r[SCOL.items]), aov:num(r[SCOL.aov]), totalCost:num(r[SCOL.totalCost]),
+      note:r[SCOL.note]||'', host:r[SCOL.host]||''
+    });
+  }
+  SESSIONS = list;
+  renderSessionsTable('revenue', true);
+  document.getElementById('sessionsCount').textContent = list.length;
+  document.getElementById('sessionsStatus').style.display='none';
+}
+
+function top3(list, key){
+  return [...list].sort((a,b)=>b[key]-a[key]).slice(0,3).map(x=>x.date+'|'+x[key]);
+}
+
+function renderSessionsTable(sortKey, desc){
+  const cols = [
+    {k:'date', label:'라이브 날짜', txt:true},
+    {k:'concept', label:'컨셉', txt:true},
+    {k:'item', label:'메인품목', txt:true},
+    {k:'revenue', label:'총 방송매출', fmt:fmtWon},
+    {k:'viewers', label:'시청수', fmt:fmtNum},
+    {k:'payers', label:'결제자수', fmt:fmtNum},
+    {k:'items', label:'결제상품수', fmt:fmtNum},
+    {k:'aov', label:'객단가', fmt:fmtWon},
+    {k:'totalCost', label:'총 비용', fmt:fmtWon},
+    {k:'host', label:'쇼호스트', txt:true},
+    {k:'note', label:'비고', txt:true},
+  ];
+  const thead = document.querySelector('#sessionsTable thead');
+  thead.innerHTML = '<tr>'+cols.map(c=>`<th class="${c.txt?'txt':''}" data-k="${c.k}">${c.label}</th>`).join('')+'</tr>';
+
+  const sorted = [...SESSIONS].sort((a,b)=>{
+    const av=a[sortKey], bv=b[sortKey];
+    if(typeof av==='number') return desc? bv-av : av-bv;
+    return desc? String(bv).localeCompare(String(av)) : String(av).localeCompare(String(bv));
+  });
+  const top3rev = new Set(top3(SESSIONS,'revenue').map(x=>x.split('|')[0]));
+
+  const tbody = document.querySelector('#sessionsTable tbody');
+  tbody.innerHTML = sorted.map(s=>`<tr>
+    <td class="txt">${s.date}</td>
+    <td class="txt">${s.concept}</td>
+    <td class="txt">${s.item}</td>
+    <td style="${top3rev.has(s.date)?'font-weight:800;color:#3452C7;':''}">${fmtWon(s.revenue)}</td>
+    <td>${fmtNum(s.viewers)}</td>
+    <td>${fmtNum(s.payers)}</td>
+    <td>${fmtNum(s.items)}</td>
+    <td>${fmtWon(s.aov)}</td>
+    <td>${fmtWon(s.totalCost)}</td>
+    <td class="txt">${s.host}</td>
+    <td class="txt">${s.note?'<span class="tag">'+s.note+'</span>':''}</td>
+  </tr>`).join('');
+
+  thead.querySelectorAll('th').forEach(th=>{
+    th.addEventListener('click', ()=>{
+      const k = th.dataset.k;
+      const nowDesc = th.dataset.desc !== 'true';
+      thead.querySelectorAll('th').forEach(t=>t.dataset.desc='');
+      th.dataset.desc = nowDesc;
+      renderSessionsTable(k, nowDesc);
+    });
+  });
+}
+
+/* ============================================================
+   4) 쇼호스트 성과 (2026 세션 groupby host)
+============================================================ */
+function buildHost(){
+  const map = {};
+  SESSIONS.forEach(s=>{
+    if(!s.host) return;
+    if(!map[s.host]) map[s.host] = { host:s.host, count:0, revenue:0, viewers:0, payers:0 };
+    map[s.host].count++; map[s.host].revenue += s.revenue; map[s.host].viewers += s.viewers; map[s.host].payers += s.payers;
+  });
+  const list = Object.values(map).map(h=>({...h, avgRevenue: h.revenue/h.count, avgViewers: h.viewers/h.count, avgPayers: h.payers/h.count}));
+  list.sort((a,b)=>b.revenue-a.revenue);
+
+  destroyChart('hostRevenue');
+  CHARTS.hostRevenue = new Chart(document.getElementById('chartHostRevenue'), {
+    type:'bar',
+    data:{ labels:list.map(h=>h.host), datasets:[
+      { label:'합산 방송매출', data:list.map(h=>h.revenue), backgroundColor:'#3452C7' }
+    ]},
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, title:{display:true,text:'쇼호스트별 합산 방송매출',align:'start',font:{size:12}} },
+      scales:{ x:{ ticks:{ callback:v=>fmtEok(v) } } } }
+  });
+
+  const maxAvg = Math.max(...list.map(h=>h.avgRevenue), 1);
+  document.getElementById('hostRankList').innerHTML = [...list].sort((a,b)=>b.avgRevenue-a.avgRevenue).map(h=>`
+    <div class="rank-bar-wrap">
+      <div class="rank-name">${h.host}</div>
+      <div class="rank-track"><div class="rank-fill" style="width:${h.avgRevenue/maxAvg*100}%;"></div></div>
+      <div class="rank-val">${fmtWon(h.avgRevenue)}</div>
+    </div>`).join('');
+
+  const thead = document.querySelector('#hostTable thead');
+  const tbody = document.querySelector('#hostTable tbody');
+  thead.innerHTML = '<tr><th class="txt">쇼호스트</th><th>담당 회차</th><th>합산 방송매출</th><th>회당 평균매출</th><th>평균 시청수</th><th>평균 결제자수</th></tr>';
+  tbody.innerHTML = list.map(h=>`<tr>
+    <td class="txt">${h.host}</td><td>${h.count}</td><td>${fmtWon(h.revenue)}</td>
+    <td>${fmtWon(h.avgRevenue)}</td><td>${fmtNum(h.avgViewers)}</td><td>${fmtNum(h.avgPayers)}</td>
+  </tr>`).join('');
+
+  document.getElementById('hostStatus').style.display='none';
+}
+
+/* ============================================================
+   5) 빅행사 vs 일반
+============================================================ */
+function buildBig(){
+  const big = SESSIONS.filter(s=> /빅행사/.test(s.note));
+  const normal = SESSIONS.filter(s=> !/빅행사/.test(s.note));
+  function avg(list,key){ return list.length? list.reduce((a,c)=>a+c[key],0)/list.length : 0; }
+  const metrics = [
+    { label:'평균 방송매출', key:'revenue', fmt:fmtWon },
+    { label:'평균 시청수', key:'viewers', fmt:fmtNum },
+    { label:'평균 결제자수', key:'payers', fmt:fmtNum },
+  ];
+
+  document.getElementById('bigCompareCards').innerHTML = metrics.map(m=>{
+    const b = avg(big,m.key), n = avg(normal,m.key);
+    const diff = n? ((b-n)/n*100) : 0;
+    return `<div class="card">
+      <div class="eyebrow">${m.label}</div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:8px;">
+        <div><div style="font-size:11px;color:var(--ink-faint);">빅행사</div><div style="font-family:var(--mono);font-weight:800;font-size:17px;color:var(--apricot);">${m.fmt(b)}</div></div>
+        <div style="text-align:right;"><div style="font-size:11px;color:var(--ink-faint);">일반</div><div style="font-family:var(--mono);font-weight:800;font-size:17px;">${m.fmt(n)}</div></div>
+      </div>
+      <div class="foot-note">빅행사가 일반 대비 ${diff>=0?'+':''}${diff.toFixed(0)}%</div>
+    </div>`;
+  }).join('');
+
+  destroyChart('big');
+  CHARTS.big = new Chart(document.getElementById('chartBig'), {
+    type:'bar',
+    data:{ labels:['평균 방송매출(백만)','평균 시청수','평균 결제자수'],
+      datasets:[
+        { label:'빅행사 ('+big.length+'회차)', backgroundColor:'#FF9B54',
+          data:[avg(big,'revenue')/1000000, avg(big,'viewers'), avg(big,'payers')] },
+        { label:'일반 라이브 ('+normal.length+'회차)', backgroundColor:'#3452C7',
+          data:[avg(normal,'revenue')/1000000, avg(normal,'viewers'), avg(normal,'payers')] },
+      ]},
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}} }
+  });
+
+  document.getElementById('bigStatus').style.display='none';
+}
+
+/* ============================================================
+   6) 광고매체 성과 (2026 월별 요약: 메타=10, 비즈보드=11, 플친=13(N idx13))
+============================================================ */
+function buildAds(goalData, rows){
+  const months=[], meta=[], biz=[], pl=[], revenue=[], ratio=[];
+  for(let i=31;i<=42;i++){
+    const r = rows[i]; if(!r || r[COL.month]==null) continue;
+    months.push(r[COL.month]);
+    meta.push(num(r[COL.meta])); biz.push(num(r[COL.bizboard])); pl.push(num(r[COL.plchin]));
+    revenue.push(num(r[COL.revenue]));
+    ratio.push(typeof r[COL.adRatio]==='number' ? r[COL.adRatio]*100 : null);
+  }
+  destroyChart('ads');
+  CHARTS.ads = new Chart(document.getElementById('chartAds'), {
+    type:'bar',
+    data:{ labels:months, datasets:[
+      { label:'메타광고', data:meta, backgroundColor:'#3452C7', stack:'ad' },
+      { label:'비즈보드', data:biz, backgroundColor:'#1FAE8E', stack:'ad' },
+      { label:'플친(카카오+알림톡)', data:pl, backgroundColor:'#FF9B54', stack:'ad' },
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{position:'bottom'}, title:{display:true,text:'월별 광고매체 집행액',align:'start',font:{size:12}} },
+      scales:{ x:{stacked:true}, y:{stacked:true, ticks:{callback:v=>fmtNum(v)}} } }
+  });
+
+  destroyChart('adsRatio');
+  CHARTS.adsRatio = new Chart(document.getElementById('chartAdsRatio'), {
+    type:'line',
+    data:{ labels:months, datasets:[
+      { label:'광고비 / 매출 비율', data:ratio, borderColor:'#E5484D', backgroundColor:'#E5484D22', fill:true, tension:.3, pointRadius:3 }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, title:{display:true,text:'광고비/매출 비율 (%)',align:'start',font:{size:12}} },
+      scales:{ y:{ ticks:{ callback:v=>v+'%' } } } }
+  });
+
+  document.getElementById('adsStatus').style.display='none';
+}
+
+/* ============================================================
+   7) 히스토리 원장부 (histDetail 탭, 연도별 블록 헤더가 다름)
+   25년: header idx4(row5), data idx5~40
+   24년: header idx47(row48), data idx48~79
+   23년: header idx82(row83), data idx83~끝
+============================================================ */
+const HIST_BLOCKS = {
+  '25': { header: 4, start: 5, end: 41 },
+  '24': { header: 47, start: 48, end: 80 },
+  '23': { header: 82, start: 83, end: 200 },
+};
+function renderHistory(rows, year){
+  const b = HIST_BLOCKS[year];
+  const header = rows[b.header] || [];
+  // find last meaningful column
+  let lastCol = 0;
+  header.forEach((v,i)=>{ if(v!=null && String(v).trim()!=='') lastCol = i; });
+  const cols = [];
+  for(let c=1;c<=lastCol;c++){ if(header[c]!=null && String(header[c]).trim()!=='') cols.push(c); }
+
+  const thead = document.querySelector('#historyTable thead');
+  thead.innerHTML = '<tr>'+cols.map(c=>`<th class="${c<=3?'txt':''}">${header[c]}</th>`).join('')+'</tr>';
+
+  const bodyRows = [];
+  for(let r=b.start; r<=b.end && r<rows.length; r++){
+    const row = rows[r]; if(!row) continue;
+    if(row[1]==null || String(row[1]).trim()==='') continue;
+    bodyRows.push(row);
+  }
+  const tbody = document.querySelector('#historyTable tbody');
+  tbody.innerHTML = bodyRows.map(row=>'<tr>'+cols.map(c=>{
+    const v = row[c];
+    const isText = c<=3;
+    const display = v==null ? '-' : (typeof v==='number' ? fmtNum(v) : v);
+    return `<td class="${isText?'txt':''}">${display}</td>`;
+  }).join('')+'</tr>').join('');
+
+  document.getElementById('historyStatus').style.display='none';
+}
+document.getElementById('histPills').addEventListener('click', e=>{
+  const btn = e.target.closest('button'); if(!btn) return;
+  document.querySelectorAll('#histPills button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if(ROWS.histDetail) renderHistory(ROWS.histDetail, btn.dataset.y);
+});
+
+/* ============================================================
+   KPI 헤더
+============================================================ */
+function buildKpis(rows2026){
+  const r27 = rows2026[26] || []; // 목표매출 row
+  const goal = num(r27[2]);
+  const achieveRaw = r27[3];
+  const totalRevenue = SESSIONS.reduce((a,c)=>a+c.revenue,0);
+  const achieve = goal ? (totalRevenue/goal*100) : (typeof achieveRaw==='number'? achieveRaw*100 : null);
+
+  document.getElementById('kpiGoal').textContent = fmtEok(goal);
+  document.getElementById('kpiGoalSub').textContent = '2026년 연간 목표';
+  document.getElementById('kpiRevenue').textContent = fmtEok(totalRevenue);
+  document.getElementById('kpiRevenueSub').textContent = SESSIONS.length + '개 회차 합계';
+  document.getElementById('kpiAchieve').textContent = achieve==null? '-' : achieve.toFixed(1)+'%';
+  document.getElementById('kpiAchieveSub').textContent = achieve>=100 ? '목표 초과 달성 🎉' : '목표까지 ' + fmtEok(Math.max(goal-totalRevenue,0));
+  document.getElementById('kpiSessions').textContent = SESSIONS.length + '회';
+  document.getElementById('kpiSessionsSub').textContent = '2026년 누적';
+}
+
+/* ============================================================
+   전체 로드
+============================================================ */
+async function loadAll(){
+  document.getElementById('lastUpdated').textContent = '불러오는 중…';
+  try{
+    const [y2026, histClean, histDetail] = await Promise.all([
+      fetchGviz(GID.y2026), fetchGviz(GID.histClean), fetchGviz(GID.histDetail)
+    ]);
+    ROWS = { y2026, histClean, histDetail };
+
+    buildTrend(histClean);
+    const goalData = buildGoal(y2026);
+    buildSessions(y2026);
+    buildHost();
+    buildBig();
+    buildAds(goalData, y2026);
+    renderHistory(histDetail, '25');
+    buildKpis(y2026);
+
+    const now = new Date();
+    document.getElementById('lastUpdated').textContent = '마지막 갱신 ' + now.toLocaleTimeString('ko-KR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  }catch(err){
+    console.error(err);
+    document.getElementById('lastUpdated').textContent = '연결 실패';
+    document.querySelectorAll('.loading').forEach(el=>{
+      el.outerHTML = '<div class="err">데이터를 불러오지 못했습니다: '+err.message+'<br>시트가 "링크가 있는 모든 사용자에게 보기 허용"으로 공유되어 있는지 확인해주세요.</div>';
+    });
+  }
+}
+
+loadAll();
+setInterval(loadAll, 5 * 60 * 1000); // 5분마다 자동 갱신
+</script>
+</body>
+</html>
