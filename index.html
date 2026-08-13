@@ -113,7 +113,12 @@
   @media (max-width:900px){
     .kpi-row{grid-template-columns:repeat(2,1fr);}
     .grid2, .grid3{grid-template-columns:1fr;}
-  }
+  }  .kpi-row.light{grid-template-columns:repeat(4,1fr); margin-bottom:16px;}
+  .kpi-row.light .kpi{background:var(--surface); border:1px solid var(--line);}
+  .kpi-row.light .kpi .label{color:var(--ink-soft);}
+  .kpi-row.light .kpi .value{color:var(--indigo-deep);}
+  .kpi-row.light .kpi .sub{color:var(--ink-faint);}
+  @media (max-width:900px){ .kpi-row.light{grid-template-columns:repeat(2,1fr);} }
 </style>
 </head>
 <body>
@@ -161,14 +166,22 @@
     <div class="section-head">
       <div class="eyebrow">2023 – 2026</div>
       <h2>연도별 트렌드</h2>
-      <p class="desc">"매출현황(23년~)" 탭 기준 · 월별 방송매출 / 기획전매출 / 시청수 / 결제자수를 연도별로 비교합니다.</p>
+      <p class="desc">"매출현황(23년~)" 탭 기준 · 연도를 선택하면 해당 연도의 월별 방송매출 / 기획전매출 / 시청수 / 결제자수를 볼 수 있습니다.</p>
     </div>
+    <div class="pill-tabs" id="trendYearPills">
+      <button data-y="0">2023년</button>
+      <button data-y="1">2024년</button>
+      <button data-y="2">2025년</button>
+      <button data-y="3" class="active">2026년</button>
+    </div>
+    <div class="kpi-row light" id="trendKpiRow"></div>
     <div class="card">
       <div class="chart-box tall"><canvas id="chartTrendRevenue"></canvas></div>
     </div>
-    <div class="grid2">
+    <div class="grid3">
       <div class="card"><div class="chart-box"><canvas id="chartTrendPromo"></canvas></div></div>
       <div class="card"><div class="chart-box"><canvas id="chartTrendViewers"></canvas></div></div>
+      <div class="card"><div class="chart-box"><canvas id="chartTrendPayers"></canvas></div></div>
     </div>
     <div id="trendStatus" class="loading"><span class="spinner"></span> 구글시트에서 데이터를 불러오는 중…</div>
   </section>
@@ -178,7 +191,7 @@
     <div class="section-head">
       <div class="eyebrow">2026년 · 월별</div>
       <h2>목표 달성률 &amp; 수익율</h2>
-      <p class="desc">월별 목표매출 대비 실제 방송매출과, 각 월의 수익율(순수익 ÷ 매출)을 함께 봅니다.</p>
+      <p class="desc">회차별 상세 데이터를 월 단위로 취합한 실제 매출과, 시트에 입력된 월별 목표매출을 비교합니다.</p>
     </div>
     <div class="card"><div class="chart-box tall"><canvas id="chartGoal"></canvas></div></div>
     <div class="card">
@@ -192,7 +205,7 @@
     <div class="section-head">
       <div class="eyebrow">2026년 · 실시간</div>
       <h2>회차별 상세 현황</h2>
-      <p class="desc">시트에 새 라이브 회차를 입력하면 이 표에 자동으로 반영됩니다. 헤더를 클릭하면 정렬됩니다.</p>
+      <p class="desc">시트에 새 라이브 회차를 입력하면 이 표에 자동으로 반영됩니다. 헤더를 클릭하면 정렬됩니다. (날짜가 특정 일자로 기재된 회차만 표시됩니다)</p>
     </div>
     <div class="card">
       <div class="table-wrap"><table id="sessionsTable"><thead></thead><tbody></tbody></table></div>
@@ -224,12 +237,14 @@
   <!-- ============ 5. BIG EVENT ============ -->
   <section id="s-big">
     <div class="section-head">
-      <div class="eyebrow">2026년</div>
-      <h2>빅행사 vs 일반 라이브</h2>
-      <p class="desc">비고란에 "빅행사"로 표시된 회차와 일반 회차의 평균 성과를 비교합니다.</p>
+      <div class="eyebrow">2026년 · 빅행사 전용</div>
+      <h2>빅행사 라이브 현황</h2>
+      <p class="desc">비고란에 "빅행사"로 표시된 회차만 모아서 보여줍니다.</p>
     </div>
     <div class="grid3" id="bigCompareCards"></div>
-    <div class="card"><div class="chart-box"><canvas id="chartBig"></canvas></div></div>
+    <div class="card">
+      <div class="table-wrap"><table id="bigTable"><thead></thead><tbody></tbody></table></div>
+    </div>
     <div id="bigStatus" class="loading"><span class="spinner"></span> 불러오는 중…</div>
   </section>
 
@@ -341,27 +356,43 @@ document.getElementById('tabNav').addEventListener('click', e=>{
    라이브 시청수 rows[21..24]
    라이브 결제자수 rows[30..33]
 ============================================================ */
+let HIST_CLEAN_ROWS = null;
+let TREND_YEAR_IDX = 3; // 0=23년 .. 3=26년 (기본값: 26년)
+const TREND_YEAR_LABELS = ['2023년','2024년','2025년','2026년'];
+
 function buildTrend(rows){
+  HIST_CLEAN_ROWS = rows;
+  renderTrend(TREND_YEAR_IDX);
+  document.getElementById('trendStatus').style.display='none';
+}
+
+function renderTrend(yearIdx){
+  const rows = HIST_CLEAN_ROWS; if(!rows) return;
   const months = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
-  function series(startRow){
-    const years = ['23년','24년','25년','26년'];
-    return years.map((y,i)=>{
-      const r = rows[startRow+i] || [];
-      const vals = months.map((_,m)=> num(r[2+m]));
-      return { label:'20'+y, data: vals };
-    });
+  function oneYear(startRow){
+    const r = rows[startRow+yearIdx] || [];
+    return months.map((_,m)=> num(r[2+m]));
   }
-  const revenueSeries = series(3);
-  const promoSeries = series(12);
-  const viewerSeries = series(21);
+  const revenue = oneYear(3), promo = oneYear(12), viewers = oneYear(21), payers = oneYear(30);
+  const color = PALETTE[yearIdx];
+
+  // KPI strip
+  const sum = arr => arr.reduce((a,b)=>a+b,0);
+  const kpiRow = document.getElementById('trendKpiRow');
+  kpiRow.innerHTML = `
+    <div class="kpi"><div class="label">${TREND_YEAR_LABELS[yearIdx]} 연간 총방송매출</div><div class="value">${fmtEok(sum(revenue))}</div><div class="sub">&nbsp;</div></div>
+    <div class="kpi"><div class="label">연간 기획전 매출</div><div class="value">${fmtEok(sum(promo))}</div><div class="sub">&nbsp;</div></div>
+    <div class="kpi"><div class="label">연간 누적 시청수</div><div class="value">${fmtNum(sum(viewers))}</div><div class="sub">&nbsp;</div></div>
+    <div class="kpi"><div class="label">연간 누적 결제자수</div><div class="value">${fmtNum(sum(payers))}</div><div class="sub">&nbsp;</div></div>
+  `;
 
   destroyChart('trendRevenue');
   CHARTS.trendRevenue = new Chart(document.getElementById('chartTrendRevenue'), {
     type:'line',
-    data:{ labels:months, datasets: revenueSeries.map((s,i)=>({
-      label:s.label+' 총방송매출', data:s.data, borderColor:PALETTE[i], backgroundColor:PALETTE[i]+'22',
-      tension:.35, fill:i===3, borderWidth: i===3?3:2, pointRadius:3
-    }))},
+    data:{ labels:months, datasets:[{
+      label:TREND_YEAR_LABELS[yearIdx]+' 총방송매출', data:revenue, borderColor:color, backgroundColor:color+'22',
+      tension:.35, fill:true, borderWidth:3, pointRadius:4
+    }]},
     options:{ responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{position:'bottom', labels:{boxWidth:10,font:{size:11}}},
         tooltip:{callbacks:{label:c=> c.dataset.label+': '+fmtWon(c.parsed.y)}}},
@@ -372,11 +403,9 @@ function buildTrend(rows){
   destroyChart('trendPromo');
   CHARTS.trendPromo = new Chart(document.getElementById('chartTrendPromo'), {
     type:'bar',
-    data:{ labels:months, datasets: promoSeries.map((s,i)=>({
-      label:s.label, data:s.data, backgroundColor:PALETTE[i]+(i===3?'FF':'55')
-    }))},
+    data:{ labels:months, datasets:[{ label:'기획전 매출', data:promo, backgroundColor:color }] },
     options:{ responsive:true, maintainAspectRatio:false,
-      plugins:{ title:{display:true,text:'라이브 기획전 매출',align:'start',font:{size:12}}, legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}},
+      plugins:{ title:{display:true,text:'라이브 기획전 매출',align:'start',font:{size:12}}, legend:{display:false} },
       scales:{ y:{ ticks:{ callback:v=>fmtEok(v) } } }
     }
   });
@@ -384,16 +413,29 @@ function buildTrend(rows){
   destroyChart('trendViewers');
   CHARTS.trendViewers = new Chart(document.getElementById('chartTrendViewers'), {
     type:'line',
-    data:{ labels:months, datasets: viewerSeries.map((s,i)=>({
-      label:s.label, data:s.data, borderColor:PALETTE[i], tension:.35, pointRadius:2, borderWidth:2
-    }))},
+    data:{ labels:months, datasets:[{ label:'시청수', data:viewers, borderColor:color, backgroundColor:color+'22', fill:true, tension:.35, pointRadius:3, borderWidth:2 }] },
     options:{ responsive:true, maintainAspectRatio:false,
-      plugins:{ title:{display:true,text:'라이브 시청수',align:'start',font:{size:12}}, legend:{position:'bottom',labels:{boxWidth:10,font:{size:10}}}},
+      plugins:{ title:{display:true,text:'라이브 시청수',align:'start',font:{size:12}}, legend:{display:false} },
     }
   });
 
-  document.getElementById('trendStatus').style.display='none';
+  destroyChart('trendPayers');
+  CHARTS.trendPayers = new Chart(document.getElementById('chartTrendPayers'), {
+    type:'line',
+    data:{ labels:months, datasets:[{ label:'결제자수', data:payers, borderColor:'#1FAE8E', backgroundColor:'#1FAE8E22', fill:true, tension:.35, pointRadius:3, borderWidth:2 }] },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ title:{display:true,text:'라이브 결제자수',align:'start',font:{size:12}}, legend:{display:false} },
+    }
+  });
 }
+
+document.getElementById('trendYearPills').addEventListener('click', e=>{
+  const btn = e.target.closest('button'); if(!btn) return;
+  document.querySelectorAll('#trendYearPills button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  TREND_YEAR_IDX = Number(btn.dataset.y);
+  renderTrend(TREND_YEAR_IDX);
+});
 
 /* ============================================================
    2) 2026 월별 목표 달성률  (y2026 탭, header row31(idx30), data idx31~42)
@@ -405,22 +447,36 @@ const COL = { // y2026 monthly summary
   adRatio:19, promoRatio:20, cost:21, shipping:22, commission:23, profit:24, profitRate:25
 };
 function buildGoal(rows){
-  const data = [];
+  const targets = {};
   for(let i=31;i<=42;i++){
-    const r = rows[i]; if(!r) continue;
-    if(r[COL.month]==null) continue;
-    data.push({
-      month:r[COL.month], goal:num(r[COL.goal]), revenue:num(r[COL.revenue]),
-      profit:num(r[COL.profit]), profitRate:r[COL.profitRate], note:r[COL.note]
-    });
+    const r = rows[i]; if(!r || r[COL.month]==null) continue;
+    targets[String(r[COL.month]).trim()] = num(r[COL.goal]);
   }
-  const months = data.map(d=>d.month);
+
+  const monthOrder = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  const agg = {};
+  monthOrder.forEach(m=>{ agg[m] = { month:m, goal:targets[m]||0, revenue:0, viewers:0, payers:0, totalCost:0, count:0 }; });
+  SESSIONS.forEach(s=>{
+    if(!s.month || !agg[s.month]) return;
+    const a = agg[s.month];
+    a.revenue += s.revenue; a.viewers += s.viewers; a.payers += s.payers; a.totalCost += s.totalCost; a.count++;
+  });
+
+  const data = monthOrder
+    .map(m=> agg[m])
+    .filter(a=> a.count>0 || a.goal>0)
+    .map(a=>{
+      const profit = a.revenue - a.totalCost;
+      const profitRate = a.revenue ? (profit/a.revenue) : null;
+      return { ...a, profit, profitRate };
+    });
+
   destroyChart('goal');
   CHARTS.goal = new Chart(document.getElementById('chartGoal'), {
-    data:{ labels:months,
+    data:{ labels:data.map(d=>d.month),
       datasets:[
         { type:'bar', label:'목표매출', data:data.map(d=>d.goal), backgroundColor:'#E4E8F1', order:2 },
-        { type:'bar', label:'총 방송매출', data:data.map(d=>d.revenue), backgroundColor:'#3452C7', order:1 },
+        { type:'bar', label:'실 방송매출(회차 합계)', data:data.map(d=>d.revenue), backgroundColor:'#3452C7', order:1 },
         { type:'line', label:'수익율', data:data.map(d=> typeof d.profitRate==='number'? d.profitRate*100 : null),
           borderColor:'#FF9B54', backgroundColor:'#FF9B54', yAxisID:'y1', tension:.3, borderWidth:3, pointRadius:4, order:0 }
       ]},
@@ -438,17 +494,17 @@ function buildGoal(rows){
 
   const thead = document.querySelector('#goalTable thead');
   const tbody = document.querySelector('#goalTable tbody');
-  thead.innerHTML = '<tr><th class="txt">월</th><th>목표매출</th><th>방송매출</th><th>달성률</th><th>순수익</th><th>수익율</th><th class="txt">비고</th></tr>';
+  thead.innerHTML = '<tr><th class="txt">월</th><th>진행 회차</th><th>목표매출</th><th>방송매출(회차 합계)</th><th>달성률</th><th>순수익</th><th>수익율</th></tr>';
   tbody.innerHTML = data.map(d=>{
     const achieve = d.goal ? (d.revenue/d.goal*100) : null;
     return `<tr>
       <td class="txt">${d.month}</td>
+      <td>${d.count}회</td>
       <td>${fmtWon(d.goal)}</td>
       <td>${fmtWon(d.revenue)}</td>
       <td style="color:${achieve>=100?'#1FAE8E':achieve>=70?'#171A24':'#E5484D'};font-weight:700;">${achieve==null?'-':achieve.toFixed(1)+'%'}</td>
-      <td>${d.profit? fmtWon(d.profit):'-'}</td>
+      <td>${fmtWon(d.profit)}</td>
       <td>${typeof d.profitRate==='number'? (d.profitRate*100).toFixed(1)+'%':'-'}</td>
-      <td class="txt">${d.note? '<span class=\"tag\">'+d.note+'</span>':''}</td>
     </tr>`;
   }).join('');
 
@@ -467,14 +523,17 @@ const SCOL = { date:1, concept:2, item:3, promoRev:4, revenue:5, sourcing:6, vie
   totalCost:18, note:19, host:20, costTTL:21, shipTTL:22 };
 
 let SESSIONS = [];
+const DATE_RE = /^(\d{1,2})\s*월\s*(\d{1,2})\s*일/;
 function buildSessions(rows){
   const list = [];
   for(let i=45;i<rows.length;i++){
     const r = rows[i]; if(!r) continue;
     const date = r[SCOL.date];
     if(!date) continue; // 빈 행이면 스킵
+    const m = String(date).trim().match(DATE_RE);
+    if(!m) continue; // "일" 단위 날짜가 아니면(VOD, 월 표기만 있는 행 등) 제외
     list.push({
-      date, concept:r[SCOL.concept]||'', item:r[SCOL.item]||'', revenue:num(r[SCOL.revenue]),
+      date, month: m[1]+'월', concept:r[SCOL.concept]||'', item:r[SCOL.item]||'', revenue:num(r[SCOL.revenue]),
       promoRev:num(r[SCOL.promoRev]), viewers:num(r[SCOL.viewers]), payers:num(r[SCOL.payers]),
       items:num(r[SCOL.items]), aov:num(r[SCOL.aov]), totalCost:num(r[SCOL.totalCost]),
       note:r[SCOL.note]||'', host:r[SCOL.host]||''
@@ -587,40 +646,34 @@ function buildHost(){
    5) 빅행사 vs 일반
 ============================================================ */
 function buildBig(){
-  const big = SESSIONS.filter(s=> /빅행사/.test(s.note));
-  const normal = SESSIONS.filter(s=> !/빅행사/.test(s.note));
-  function avg(list,key){ return list.length? list.reduce((a,c)=>a+c[key],0)/list.length : 0; }
-  const metrics = [
-    { label:'평균 방송매출', key:'revenue', fmt:fmtWon },
-    { label:'평균 시청수', key:'viewers', fmt:fmtNum },
-    { label:'평균 결제자수', key:'payers', fmt:fmtNum },
+  const big = SESSIONS.filter(s=> /빅행사/.test(s.note)).sort((a,b)=> b.revenue - a.revenue);
+  function sum(list,key){ return list.reduce((a,c)=>a+c[key],0); }
+  function avg(list,key){ return list.length? sum(list,key)/list.length : 0; }
+
+  const cards = [
+    { label:'빅행사 진행 회차', value: big.length + '회' },
+    { label:'합산 방송매출', value: fmtWon(sum(big,'revenue')) },
+    { label:'회당 평균 방송매출', value: fmtWon(avg(big,'revenue')) },
   ];
+  document.getElementById('bigCompareCards').innerHTML = cards.map(c=>`
+    <div class="card">
+      <div class="eyebrow">${c.label}</div>
+      <div style="font-family:var(--mono);font-weight:800;font-size:20px;margin-top:8px;color:var(--apricot);">${c.value}</div>
+    </div>`).join('');
 
-  document.getElementById('bigCompareCards').innerHTML = metrics.map(m=>{
-    const b = avg(big,m.key), n = avg(normal,m.key);
-    const diff = n? ((b-n)/n*100) : 0;
-    return `<div class="card">
-      <div class="eyebrow">${m.label}</div>
-      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:8px;">
-        <div><div style="font-size:11px;color:var(--ink-faint);">빅행사</div><div style="font-family:var(--mono);font-weight:800;font-size:17px;color:var(--apricot);">${m.fmt(b)}</div></div>
-        <div style="text-align:right;"><div style="font-size:11px;color:var(--ink-faint);">일반</div><div style="font-family:var(--mono);font-weight:800;font-size:17px;">${m.fmt(n)}</div></div>
-      </div>
-      <div class="foot-note">빅행사가 일반 대비 ${diff>=0?'+':''}${diff.toFixed(0)}%</div>
-    </div>`;
-  }).join('');
-
-  destroyChart('big');
-  CHARTS.big = new Chart(document.getElementById('chartBig'), {
-    type:'bar',
-    data:{ labels:['평균 방송매출(백만)','평균 시청수','평균 결제자수'],
-      datasets:[
-        { label:'빅행사 ('+big.length+'회차)', backgroundColor:'#FF9B54',
-          data:[avg(big,'revenue')/1000000, avg(big,'viewers'), avg(big,'payers')] },
-        { label:'일반 라이브 ('+normal.length+'회차)', backgroundColor:'#3452C7',
-          data:[avg(normal,'revenue')/1000000, avg(normal,'viewers'), avg(normal,'payers')] },
-      ]},
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{position:'bottom'}} }
-  });
+  const thead = document.querySelector('#bigTable thead');
+  const tbody = document.querySelector('#bigTable tbody');
+  thead.innerHTML = '<tr><th class="txt">라이브 날짜</th><th class="txt">컨셉</th><th class="txt">메인품목</th><th>총 방송매출</th><th>시청수</th><th>결제자수</th><th>객단가</th><th class="txt">쇼호스트</th></tr>';
+  tbody.innerHTML = big.length ? big.map(s=>`<tr>
+    <td class="txt">${s.date}</td>
+    <td class="txt">${s.concept}</td>
+    <td class="txt">${s.item}</td>
+    <td style="font-weight:700;color:var(--apricot);">${fmtWon(s.revenue)}</td>
+    <td>${fmtNum(s.viewers)}</td>
+    <td>${fmtNum(s.payers)}</td>
+    <td>${fmtWon(s.aov)}</td>
+    <td class="txt">${s.host}</td>
+  </tr>`).join('') : '<tr><td colspan="8" style="text-align:center;color:var(--ink-faint);padding:24px;">아직 비고란에 "빅행사"로 표시된 회차가 없어요.</td></tr>';
 
   document.getElementById('bigStatus').style.display='none';
 }
@@ -742,8 +795,8 @@ async function loadAll(){
     ROWS = { y2026, histClean, histDetail };
 
     buildTrend(histClean);
-    const goalData = buildGoal(y2026);
     buildSessions(y2026);
+    const goalData = buildGoal(y2026);
     buildHost();
     buildBig();
     buildAds(goalData, y2026);
