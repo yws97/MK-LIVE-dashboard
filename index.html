@@ -304,7 +304,7 @@ function fetchGviz(gid){
     };
 
     const script = document.createElement('script');
-    script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?gid=${gid}&headers=0&tqx=out:json;responseHandler=${cbName}`;
+    script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?gid=${gid}&headers=0&tqx=out:json;responseHandler:${cbName}`;
     script.onerror = ()=>{ cleanup(); reject(new Error('시트 스크립트를 불러오지 못했습니다. 시트가 "링크가 있는 모든 사용자에게 보기 허용"으로 공유되어 있는지 확인해주세요.')); };
     document.body.appendChild(script);
   });
