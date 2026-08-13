@@ -153,7 +153,7 @@
     <button data-tab="goal">월별 목표 달성률</button>
     <button data-tab="sessions">회차별 상세 (2026)</button>
     <button data-tab="host">쇼호스트 성과</button>
-    <button data-tab="big">빅행사 비교</button>
+    <button data-tab="big">빅행사 데이터</button>
     <button data-tab="ads">광고매체 성과</button>
     <button data-tab="history">히스토리 (23–25년)</button>
   </nav>
@@ -238,7 +238,7 @@
   <section id="s-big">
     <div class="section-head">
       <div class="eyebrow">2026년 · 빅행사 전용</div>
-      <h2>빅행사 라이브 현황</h2>
+      <h2>빅행사 데이터</h2>
       <p class="desc">비고란에 "빅행사"로 표시된 회차만 모아서 보여줍니다.</p>
     </div>
     <div class="grid3" id="bigCompareCards"></div>
@@ -321,7 +321,10 @@ function fetchGviz(gid){
     };
 
     const script = document.createElement('script');
-    script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?gid=${gid}&headers=0&tqx=out:json`;
+    // range를 명시적으로 A1부터 지정해서, 구글시트가 완전히 빈 선행 행/열을
+    // 응답에서 트리밍하는 것을 막습니다. 이렇게 하면 rows 배열의 인덱스가
+    // 항상 실제 시트 행 번호와 1:1로 정확히 일치합니다 (rows[i] = 시트 (i+1)행).
+    script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?gid=${gid}&headers=0&range=A1:BZ500&tqx=out:json`;
     script.onerror = ()=>{ cleanup(); reject(new Error('시트 스크립트를 불러오지 못했습니다. 시트가 "링크가 있는 모든 사용자에게 보기 허용"으로 공유되어 있는지 확인해주세요.')); };
     document.body.appendChild(script);
   });
@@ -359,9 +362,30 @@ document.getElementById('tabNav').addEventListener('click', e=>{
 let HIST_CLEAN_ROWS = null;
 let TREND_YEAR_IDX = 3; // 0=23년 .. 3=26년 (기본값: 26년)
 const TREND_YEAR_LABELS = ['2023년','2024년','2025년','2026년'];
+let TREND_OFFSETS = { revenue:3, promo:12, viewers:21, payers:30 }; // 폴백 기본값
+
+function findLabelRow(rows, label){
+  for(let i=0;i<rows.length;i++){
+    const r = rows[i];
+    if(r && r[1]===label) return i;
+  }
+  return -1;
+}
 
 function buildTrend(rows){
   HIST_CLEAN_ROWS = rows;
+  // 시트가 완전히 빈 선행 행을 응답에서 트리밍하는 경우가 있어, 행 번호를 하드코딩하지 않고
+  // 섹션 제목("라이브 1시간 매출" 등)을 직접 찾아서 데이터 시작 위치를 계산합니다.
+  const rev = findLabelRow(rows, '라이브 1시간 매출');
+  const promo = findLabelRow(rows, '라이브 기획전 매출');
+  const view = findLabelRow(rows, '라이브 시청수');
+  const pay = findLabelRow(rows, '라이브 결제자수');
+  TREND_OFFSETS = {
+    revenue: rev  >= 0 ? rev  + 2 : TREND_OFFSETS.revenue,
+    promo:   promo>= 0 ? promo+ 2 : TREND_OFFSETS.promo,
+    viewers: view >= 0 ? view + 2 : TREND_OFFSETS.viewers,
+    payers:  pay  >= 0 ? pay  + 2 : TREND_OFFSETS.payers,
+  };
   renderTrend(TREND_YEAR_IDX);
   document.getElementById('trendStatus').style.display='none';
 }
@@ -373,7 +397,8 @@ function renderTrend(yearIdx){
     const r = rows[startRow+yearIdx] || [];
     return months.map((_,m)=> num(r[2+m]));
   }
-  const revenue = oneYear(3), promo = oneYear(12), viewers = oneYear(21), payers = oneYear(30);
+  const revenue = oneYear(TREND_OFFSETS.revenue), promo = oneYear(TREND_OFFSETS.promo),
+        viewers = oneYear(TREND_OFFSETS.viewers), payers = oneYear(TREND_OFFSETS.payers);
   const color = PALETTE[yearIdx];
 
   // KPI strip
@@ -438,17 +463,41 @@ document.getElementById('trendYearPills').addEventListener('click', e=>{
 });
 
 /* ============================================================
-   2) 2026 월별 목표 달성률  (y2026 탭, header row31(idx30), data idx31~42)
-   col idx: B월=1 C목표=2 D기획전=3 E총방송매출=4 ... Y수익=24 Z수익율=25
+   2) 2026 월별 목표 달성률  (y2026 탭)
+   행 번호를 하드코딩하지 않고, 라벨 텍스트로 앵커 행을 찾아서 사용합니다
+   (구글시트가 완전히 빈 선행 행을 트리밍하는 경우가 있어 안전하게 처리)
 ============================================================ */
 const COL = { // y2026 monthly summary
   month:1, goal:2, promoRev:3, revenue:4, sourcingRev:5, viewers:6, payers:7, items:8, aov:9,
   meta:10, bizboard:11, plchin:12, promo:13, host:14, fee:15, adSpend:16, totalCost:17, note:18,
   adRatio:19, promoRatio:20, cost:21, shipping:22, commission:23, profit:24, profitRate:25
 };
+
+let Y2026_ANCHORS = null;
+function findRowByCol(rows, colIdx, exactValue){
+  for(let i=0;i<rows.length;i++){
+    const r = rows[i];
+    if(r && r[colIdx]===exactValue) return i;
+  }
+  return -1;
+}
+function getY2026Anchors(rows){
+  if(Y2026_ANCHORS) return Y2026_ANCHORS;
+  const goalRowIdx = findRowByCol(rows, 1, '목표매출');          // "목표매출 | 1,000,000,000 | 64.94%" 행
+  const monthlyHeaderIdx = findRowByCol(rows, 2, '목표매출');     // 월별 요약 표의 컬럼 헤더 행(C열="목표매출")
+  const sessionHeaderIdx = findRowByCol(rows, 1, '라이브 날짜');  // 회차별 상세 표의 컬럼 헤더 행
+  Y2026_ANCHORS = {
+    goalRowIdx: goalRowIdx>=0 ? goalRowIdx : 26,
+    monthlyDataStart: monthlyHeaderIdx>=0 ? monthlyHeaderIdx+1 : 31,
+    sessionDataStart: sessionHeaderIdx>=0 ? sessionHeaderIdx+1 : 45,
+  };
+  return Y2026_ANCHORS;
+}
+
 function buildGoal(rows){
+  const anchors = getY2026Anchors(rows);
   const targets = {};
-  for(let i=31;i<=42;i++){
+  for(let i=anchors.monthlyDataStart; i<anchors.monthlyDataStart+12; i++){
     const r = rows[i]; if(!r || r[COL.month]==null) continue;
     targets[String(r[COL.month]).trim()] = num(r[COL.goal]);
   }
@@ -525,8 +574,9 @@ const SCOL = { date:1, concept:2, item:3, promoRev:4, revenue:5, sourcing:6, vie
 let SESSIONS = [];
 const DATE_RE = /^(\d{1,2})\s*월\s*(\d{1,2})\s*일/;
 function buildSessions(rows){
+  const anchors = getY2026Anchors(rows);
   const list = [];
-  for(let i=45;i<rows.length;i++){
+  for(let i=anchors.sessionDataStart;i<rows.length;i++){
     const r = rows[i]; if(!r) continue;
     const date = r[SCOL.date];
     if(!date) continue; // 빈 행이면 스킵
@@ -682,8 +732,9 @@ function buildBig(){
    6) 광고매체 성과 (2026 월별 요약: 메타=10, 비즈보드=11, 플친=13(N idx13))
 ============================================================ */
 function buildAds(goalData, rows){
+  const anchors = getY2026Anchors(rows);
   const months=[], meta=[], biz=[], pl=[], revenue=[], ratio=[];
-  for(let i=31;i<=42;i++){
+  for(let i=anchors.monthlyDataStart; i<anchors.monthlyDataStart+12; i++){
     const r = rows[i]; if(!r || r[COL.month]==null) continue;
     months.push(r[COL.month]);
     meta.push(num(r[COL.meta])); biz.push(num(r[COL.bizboard])); pl.push(num(r[COL.plchin]));
@@ -719,17 +770,33 @@ function buildAds(goalData, rows){
 
 /* ============================================================
    7) 히스토리 원장부 (histDetail 탭, 연도별 블록 헤더가 다름)
-   25년: header idx4(row5), data idx5~40
-   24년: header idx47(row48), data idx48~79
-   23년: header idx82(row83), data idx83~끝
+   하드코딩된 행 번호 대신 "라이브 날짜" 헤더 텍스트를 찾아서 블록 경계를
+   동적으로 계산합니다 (시트가 나타나는 순서: 25년 → 24년 → 23년).
 ============================================================ */
-const HIST_BLOCKS = {
-  '25': { header: 4, start: 5, end: 41 },
-  '24': { header: 47, start: 48, end: 80 },
-  '23': { header: 82, start: 83, end: 200 },
-};
+let HIST_BLOCKS_CACHE = null;
+function getHistBlocks(rows){
+  if(HIST_BLOCKS_CACHE) return HIST_BLOCKS_CACHE;
+  const headers = [];
+  for(let i=0;i<rows.length;i++){
+    if(rows[i] && rows[i][1]==='라이브 날짜') headers.push(i);
+  }
+  const order = ['25','24','23'];
+  const blocks = {};
+  headers.slice(0,3).forEach((h,idx)=>{
+    const year = order[idx]; if(!year) return;
+    const nextHeader = headers[idx+1];
+    const end = nextHeader ? nextHeader-2 : rows.length-1;
+    blocks[year] = { header:h, start:h+1, end };
+  });
+  // 폴백: 헤더를 못 찾았을 때 대비한 기본값
+  if(!blocks['25']) blocks['25'] = { header:4, start:5, end:41 };
+  if(!blocks['24']) blocks['24'] = { header:47, start:48, end:80 };
+  if(!blocks['23']) blocks['23'] = { header:82, start:83, end:200 };
+  HIST_BLOCKS_CACHE = blocks;
+  return blocks;
+}
 function renderHistory(rows, year){
-  const b = HIST_BLOCKS[year];
+  const b = getHistBlocks(rows)[year];
   const header = rows[b.header] || [];
   // find last meaningful column
   let lastCol = 0;
@@ -767,7 +834,8 @@ document.getElementById('histPills').addEventListener('click', e=>{
    KPI 헤더
 ============================================================ */
 function buildKpis(rows2026){
-  const r27 = rows2026[26] || []; // 목표매출 row
+  const anchors = getY2026Anchors(rows2026);
+  const r27 = rows2026[anchors.goalRowIdx] || []; // 목표매출 row
   const goal = num(r27[2]);
   const achieveRaw = r27[3];
   const totalRevenue = SESSIONS.reduce((a,c)=>a+c.revenue,0);
@@ -788,6 +856,8 @@ function buildKpis(rows2026){
 ============================================================ */
 async function loadAll(){
   document.getElementById('lastUpdated').textContent = '불러오는 중…';
+  Y2026_ANCHORS = null; // 매번 새로 탐색 (시트 구조가 바뀌어도 안전하도록)
+  HIST_BLOCKS_CACHE = null;
   try{
     const y2026 = await fetchGviz(GID.y2026);
     const histClean = await fetchGviz(GID.histClean);
