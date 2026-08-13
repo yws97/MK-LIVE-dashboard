@@ -277,34 +277,36 @@ const GID = {
   histDetail: '0'        // 라이브 매출 상세(23년~) - 23/24/25년 원장부
 };
 
-let __gvizCounter = 0;
 function fetchGviz(gid){
   return new Promise((resolve, reject)=>{
-    const cbName = '__gvizCB_' + (++__gvizCounter) + '_' + Date.now();
     const timeout = setTimeout(()=>{
       cleanup();
       reject(new Error('시트 응답이 없습니다 (10초 초과). 공유 설정을 확인해주세요.'));
     }, 10000);
 
     function cleanup(){
-      delete window[cbName];
       if(script.parentNode) script.parentNode.removeChild(script);
       clearTimeout(timeout);
     }
 
-    window[cbName] = (json)=>{
+    // 구글은 커스텀 responseHandler 파라미터를 무시하고 기본 함수인
+    // google.visualization.Query.setResponse(json) 을 직접 호출합니다.
+    // 그래서 그 함수를 우리가 직접 정의해서 데이터를 가로챕니다.
+    window.google = window.google || {};
+    window.google.visualization = window.google.visualization || {};
+    window.google.visualization.Query = window.google.visualization.Query || {};
+    window.google.visualization.Query.setResponse = function(json){
+      cleanup();
       try{
         const rows = json.table.rows.map(r => (r.c||[]).map(c => (c && c.v !== undefined) ? c.v : null));
-        cleanup();
         resolve(rows);
       }catch(e){
-        cleanup();
         reject(e);
       }
     };
 
     const script = document.createElement('script');
-    script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?gid=${gid}&headers=0&tqx=out:json;responseHandler:${cbName}`;
+    script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?gid=${gid}&headers=0&tqx=out:json`;
     script.onerror = ()=>{ cleanup(); reject(new Error('시트 스크립트를 불러오지 못했습니다. 시트가 "링크가 있는 모든 사용자에게 보기 허용"으로 공유되어 있는지 확인해주세요.')); };
     document.body.appendChild(script);
   });
@@ -734,9 +736,9 @@ function buildKpis(rows2026){
 async function loadAll(){
   document.getElementById('lastUpdated').textContent = '불러오는 중…';
   try{
-    const [y2026, histClean, histDetail] = await Promise.all([
-      fetchGviz(GID.y2026), fetchGviz(GID.histClean), fetchGviz(GID.histDetail)
-    ]);
+    const y2026 = await fetchGviz(GID.y2026);
+    const histClean = await fetchGviz(GID.histClean);
+    const histDetail = await fetchGviz(GID.histDetail);
     ROWS = { y2026, histClean, histDetail };
 
     buildTrend(histClean);
