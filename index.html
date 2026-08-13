@@ -277,15 +277,37 @@ const GID = {
   histDetail: '0'        // 라이브 매출 상세(23년~) - 23/24/25년 원장부
 };
 
-async function fetchGviz(gid){
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?gid=${gid}&headers=0&tqx=out:json`;
-  const res = await fetch(url);
-  if(!res.ok) throw new Error('시트를 불러오지 못했습니다 (' + res.status + ')');
-  const text = await res.text();
-  const start = text.indexOf('(');
-  const end = text.lastIndexOf(')');
-  const json = JSON.parse(text.substring(start+1, end));
-  return json.table.rows.map(r => (r.c||[]).map(c => (c && c.v !== undefined) ? c.v : null));
+let __gvizCounter = 0;
+function fetchGviz(gid){
+  return new Promise((resolve, reject)=>{
+    const cbName = '__gvizCB_' + (++__gvizCounter) + '_' + Date.now();
+    const timeout = setTimeout(()=>{
+      cleanup();
+      reject(new Error('시트 응답이 없습니다 (10초 초과). 공유 설정을 확인해주세요.'));
+    }, 10000);
+
+    function cleanup(){
+      delete window[cbName];
+      if(script.parentNode) script.parentNode.removeChild(script);
+      clearTimeout(timeout);
+    }
+
+    window[cbName] = (json)=>{
+      try{
+        const rows = json.table.rows.map(r => (r.c||[]).map(c => (c && c.v !== undefined) ? c.v : null));
+        cleanup();
+        resolve(rows);
+      }catch(e){
+        cleanup();
+        reject(e);
+      }
+    };
+
+    const script = document.createElement('script');
+    script.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?gid=${gid}&headers=0&tqx=out:json;responseHandler=${cbName}`;
+    script.onerror = ()=>{ cleanup(); reject(new Error('시트 스크립트를 불러오지 못했습니다. 시트가 "링크가 있는 모든 사용자에게 보기 허용"으로 공유되어 있는지 확인해주세요.')); };
+    document.body.appendChild(script);
+  });
 }
 
 const num = v => (typeof v === 'number') ? v : (v ? Number(String(v).replace(/[^0-9.-]/g,'')) || 0 : 0);
