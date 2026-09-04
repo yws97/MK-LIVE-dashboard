@@ -111,23 +111,23 @@
   .modal-close:hover{color:var(--rust);}
   .modal-body{padding:8px 20px 20px;overflow-y:auto;}
 
-  .tree-channel{border-bottom:1px solid var(--line);padding:10px 0;}
-  .tree-channel:last-child{border-bottom:none;}
-  .tree-row{
-    display:flex;align-items:center;gap:8px;padding:7px 6px;cursor:pointer;
-    border-radius:var(--radius);font-size:13.5px;
+  .list-channel-group{margin-bottom:22px;}
+  .list-channel-group:last-child{margin-bottom:0;}
+  .list-channel-head{
+    font-family:'Noto Serif KR',serif;font-weight:700;font-size:15.5px;
+    color:var(--ink);padding:8px 10px;background:var(--paper-alt);
+    border-left:3px solid var(--teal);margin-bottom:2px;
   }
-  .tree-row:hover{background:var(--paper-alt);}
-  .tree-row.leaf{cursor:pointer;}
-  .tree-row.leaf:hover{background:var(--teal-bg);color:var(--teal);}
-  .tree-toggle{width:14px;flex-shrink:0;color:var(--ink-faint);font-size:11px;}
-  .tree-name{font-weight:600;}
-  .tree-level-year .tree-row{padding-left:22px;font-weight:500;}
-  .tree-level-month .tree-row{padding-left:40px;}
-  .tree-level-week .tree-row{padding-left:58px;font-weight:400;color:var(--ink-soft);}
-  .tree-level-week .tree-row.leaf:hover{color:var(--teal);}
-  .tree-children{border-left:1px solid var(--line);margin-left:15px;}
-  .tree-empty-msg{font-size:12px;color:var(--ink-faint);padding:4px 0 4px 22px;}
+  .list-week-row{
+    display:flex;align-items:center;justify-content:space-between;gap:14px;
+    padding:11px 14px 11px 16px;cursor:pointer;border-bottom:1px solid var(--line);
+  }
+  .list-week-row:last-child{border-bottom:none;}
+  .list-week-row:hover{background:var(--teal-bg);}
+  .list-week-row:hover .list-week-label{color:var(--teal);}
+  .list-week-path{font-size:12px;color:var(--ink-faint);flex-shrink:0;}
+  .list-week-label{font-size:14.5px;font-weight:700;color:var(--ink);text-align:right;}
+  .tree-empty-msg{font-size:12.5px;color:var(--ink-faint);padding:10px 14px;}
   .modal-loading{padding:30px;text-align:center;color:var(--ink-soft);font-size:13px;}
 
   /* nav levels (breadcrumb drill-down) */
@@ -219,25 +219,47 @@
     gap:10px;margin-bottom:20px;
   }
   .img-tile{
-    position:relative;aspect-ratio:16/10;border:1px solid var(--line);
+    position:relative;aspect-ratio:1/1;border:1px solid var(--line);
     background:var(--paper-alt);overflow:hidden;border-radius:var(--radius);
   }
-  .img-tile img{width:100%;height:100%;object-fit:cover;display:block;}
+  .img-tile img{width:100%;height:100%;object-fit:contain;display:block;cursor:zoom-in;}
   .img-remove{
     position:absolute;top:5px;right:5px;width:22px;height:22px;
     background:rgba(36,35,31,0.82);color:#fff;border:none;border-radius:50%;
     font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;
-    opacity:0;transition:opacity .12s;
+    opacity:0;transition:opacity .12s;z-index:2;
   }
   .img-tile:hover .img-remove{opacity:1;}
   .img-add{
-    aspect-ratio:16/10;border:1.5px dashed var(--line-strong);border-radius:var(--radius);
+    aspect-ratio:1/1;border:1.5px dashed var(--line-strong);border-radius:var(--radius);
     background:var(--paper);display:flex;flex-direction:column;align-items:center;justify-content:center;
     color:var(--ink-soft);cursor:pointer;gap:4px;font-size:12px;text-align:center;padding:8px;
   }
   .img-add:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-bg);}
   .img-add.dragover{border-color:var(--teal);background:var(--teal-bg);color:var(--teal);}
   .img-add .plus{font-size:22px;line-height:1;font-weight:400;}
+
+  /* lightbox */
+  .lightbox-backdrop{
+    position:fixed;inset:0;background:rgba(20,19,16,0.92);
+    display:flex;align-items:center;justify-content:center;z-index:200;padding:40px;
+  }
+  .lightbox-backdrop.hidden{display:none;}
+  .lightbox-img{max-width:100%;max-height:100%;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,0.5);}
+  .lightbox-close{
+    position:fixed;top:20px;right:24px;background:none;border:none;color:#fff;
+    font-size:28px;cursor:pointer;line-height:1;opacity:0.85;
+  }
+  .lightbox-close:hover{opacity:1;}
+  .lightbox-nav{
+    position:fixed;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.1);
+    border:none;color:#fff;font-size:26px;width:48px;height:48px;border-radius:50%;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;
+  }
+  .lightbox-nav:hover{background:rgba(255,255,255,0.22);}
+  .lightbox-prev{left:20px;}
+  .lightbox-next{right:20px;}
+  .lightbox-count{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);color:#eee;font-size:12.5px;}
 
   /* table */
   .table-scroll{overflow-x:auto;}
@@ -382,6 +404,14 @@
     </div>
     <div class="modal-body" id="browseBody"></div>
   </div>
+</div>
+
+<div class="lightbox-backdrop hidden" id="lightbox">
+  <button class="lightbox-close" id="lightboxClose">✕</button>
+  <button class="lightbox-nav lightbox-prev" id="lightboxPrev">‹</button>
+  <img class="lightbox-img" id="lightboxImg" src="" alt="">
+  <button class="lightbox-nav lightbox-next" id="lightboxNext">›</button>
+  <span class="lightbox-count" id="lightboxCount"></span>
 </div>
 
 <script>
@@ -930,7 +960,9 @@
     const grid = el('div', {class:'img-grid'});
     imgs.forEach((src, idx) => {
       const tile = el('div', {class:'img-tile'});
-      tile.appendChild(el('img', {src}));
+      const imgEl = el('img', {src});
+      imgEl.addEventListener('click', () => openLightbox(imgs, idx));
+      tile.appendChild(imgEl);
       if (!viewMode){
         tile.appendChild(el('button', {class:'img-remove', onclick: () => {
           imgs.splice(idx, 1);
@@ -1101,6 +1133,42 @@
     }
   });
 
+  // ---------- image lightbox (click a thumbnail to see it full-size) ----------
+  const lightbox = document.getElementById('lightbox');
+  const lightboxImg = document.getElementById('lightboxImg');
+  const lightboxCount = document.getElementById('lightboxCount');
+  let lightboxImgs = [];
+  let lightboxIdx = 0;
+
+  function openLightbox(imgs, idx){
+    lightboxImgs = imgs;
+    lightboxIdx = idx;
+    renderLightbox();
+    lightbox.classList.remove('hidden');
+  }
+  function closeLightbox(){ lightbox.classList.add('hidden'); }
+  function renderLightbox(){
+    lightboxImg.src = lightboxImgs[lightboxIdx];
+    lightboxCount.textContent = lightboxImgs.length > 1 ? `${lightboxIdx + 1} / ${lightboxImgs.length}` : '';
+    const multi = lightboxImgs.length > 1;
+    document.getElementById('lightboxPrev').style.display = multi ? 'flex' : 'none';
+    document.getElementById('lightboxNext').style.display = multi ? 'flex' : 'none';
+  }
+  function lightboxStep(dir){
+    lightboxIdx = (lightboxIdx + dir + lightboxImgs.length) % lightboxImgs.length;
+    renderLightbox();
+  }
+  document.getElementById('lightboxClose').addEventListener('click', closeLightbox);
+  document.getElementById('lightboxPrev').addEventListener('click', () => lightboxStep(-1));
+  document.getElementById('lightboxNext').addEventListener('click', () => lightboxStep(1));
+  lightbox.addEventListener('click', (e) => { if (e.target === lightbox) closeLightbox(); });
+  document.addEventListener('keydown', (e) => {
+    if (lightbox.classList.contains('hidden')) return;
+    if (e.key === 'Escape') closeLightbox();
+    else if (e.key === 'ArrowLeft') lightboxStep(-1);
+    else if (e.key === 'ArrowRight') lightboxStep(1);
+  });
+
   // ---------- manual save button ----------
   const saveBtn = document.getElementById('saveBtn');
   saveBtn.addEventListener('click', async () => {
@@ -1163,59 +1231,32 @@
       return;
     }
     tree.forEach(ch => {
-      const chWrap = el('div', {class:'tree-channel'});
-      const chRow = el('div', {class:'tree-row'}, [
-        el('span', {class:'tree-toggle'}, [document.createTextNode('▾')]),
-        el('span', {class:'tree-name'}, [document.createTextNode(ch.label)])
-      ]);
-      const chChildren = el('div', {class:'tree-children'});
-      if (ch.years.length === 0){
-        chChildren.appendChild(el('div', {class:'tree-empty-msg'}, [document.createTextNode('연도 없음')]));
-      }
+      const group = el('div', {class:'list-channel-group'});
+      group.appendChild(el('div', {class:'list-channel-head'}, [document.createTextNode(ch.label)]));
+
+      // flatten year > month > week into a simple, scannable list of rows
+      const rows = [];
       ch.years.forEach(yr => {
-        const yrLevel = el('div', {class:'tree-level-year'});
-        const yrRow = el('div', {class:'tree-row'}, [
-          el('span', {class:'tree-toggle'}, [document.createTextNode('▾')]),
-          el('span', {class:'tree-name'}, [document.createTextNode(yr.label)])
-        ]);
-        yrLevel.appendChild(yrRow);
-        const yrChildren = el('div', {class:'tree-children'});
-        if (yr.months.length === 0){
-          yrChildren.appendChild(el('div', {class:'tree-empty-msg'}, [document.createTextNode('월 없음')]));
-        }
         yr.months.forEach(mo => {
-          const moLevel = el('div', {class:'tree-level-month'});
-          const moRow = el('div', {class:'tree-row'}, [
-            el('span', {class:'tree-toggle'}, [document.createTextNode('▾')]),
-            el('span', {class:'tree-name'}, [document.createTextNode(mo.label)])
-          ]);
-          moLevel.appendChild(moRow);
-          const moChildren = el('div', {class:'tree-children'});
-          if (mo.weeks.length === 0){
-            moChildren.appendChild(el('div', {class:'tree-empty-msg'}, [document.createTextNode('주차 없음')]));
-          }
-          mo.weeks.forEach(wk => {
-            const wkLevel = el('div', {class:'tree-level-week'});
-            const wkRow = el('div', {class:'tree-row leaf'}, [
-              el('span', {class:'tree-toggle'}, [document.createTextNode('·')]),
-              el('span', {class:'tree-name'}, [document.createTextNode(wk.label)])
-            ]);
-            wkRow.addEventListener('click', () => {
-              closeBrowseModal();
-              navigateTo(ch.id, yr.id, mo.id, wk.id);
-            });
-            wkLevel.appendChild(wkRow);
-            moChildren.appendChild(wkLevel);
-          });
-          moLevel.appendChild(moChildren);
-          yrChildren.appendChild(moLevel);
+          mo.weeks.forEach(wk => rows.push({ yr, mo, wk }));
         });
-        yrLevel.appendChild(yrChildren);
-        chChildren.appendChild(yrLevel);
       });
-      chWrap.appendChild(chRow);
-      chWrap.appendChild(chChildren);
-      browseBody.appendChild(chWrap);
+
+      if (rows.length === 0){
+        group.appendChild(el('div', {class:'tree-empty-msg'}, [document.createTextNode('저장된 주차가 없습니다')]));
+      } else {
+        rows.forEach(r => {
+          const row = el('div', {class:'list-week-row', onclick: () => {
+            closeBrowseModal();
+            navigateTo(ch.id, r.yr.id, r.mo.id, r.wk.id);
+          }}, [
+            el('span', {class:'list-week-path'}, [document.createTextNode(`${r.yr.label} › ${r.mo.label}`)]),
+            el('span', {class:'list-week-label'}, [document.createTextNode(r.wk.label)])
+          ]);
+          group.appendChild(row);
+        });
+      }
+      browseBody.appendChild(group);
     });
   }
 
