@@ -336,7 +336,9 @@
   }
 
   /* ---- home screen ---- */
-  #homeScreen.hidden, #editorScreen.hidden{display:none;}
+  #homeScreen.hidden, #editorScreen.hidden, #configScreen.hidden{display:none;}
+  #configScreen{min-height:70vh;display:flex;align-items:center;justify-content:center;text-align:center;}
+  #configScreen code{background:var(--teal-bg);color:var(--teal);padding:2px 6px;border-radius:3px;font-family:monospace;}
   #homeScreen{
     min-height:80vh;display:flex;flex-direction:column;align-items:center;
     justify-content:center;text-align:center;gap:34px;padding:20px 0;
@@ -384,8 +386,21 @@
 <body>
 <div class="wrap">
 
+  <!-- ================= CONFIG-NEEDED SCREEN ================= -->
+  <div id="configScreen" class="hidden">
+    <div class="home-band">
+      <div class="home-band-label">MOTHER-K MARKETING</div>
+      <h1 class="home-title">Firebase 설정이<br>필요<span class="accent">해요</span>.</h1>
+      <p class="home-sub">
+        이 대시보드를 팀원과 함께 쓰려면, 무료 Firebase 프로젝트를 하나 연결해야 합니다.<br>
+        같이 받으신 README.md 파일의 안내를 따라 설정을 마친 뒤, 이 HTML 파일 상단의<br>
+        <code>firebaseConfig</code> 값을 채워 다시 업로드해주세요.
+      </p>
+    </div>
+  </div>
+
   <!-- ================= HOME SCREEN ================= -->
-  <div id="homeScreen">
+  <div id="homeScreen" class="hidden">
     <div class="home-band">
       <div class="home-band-label">MOTHER-K MARKETING</div>
       <h1 class="home-title">출산준비도 선물도<br>일단 <span class="accent">광고 리포트</span>.</h1>
@@ -408,7 +423,7 @@
       <input type="file" id="importFile" accept="application/json" style="display:none">
     </div>
     <div class="storage-warning hidden" id="storageWarning">
-      ⚠ 이 브라우저에서는 저장 기능(IndexedDB)을 사용할 수 없어요 — 시크릿/프라이빗 모드이거나 브라우저 설정에서 차단되어 있을 수 있습니다. 일반 창에서 열거나, "백업 저장"으로 파일을 꼭 백업해주세요.
+      ⚠ 저장소에 연결할 수 없어요 — Firebase 설정 값이 올바른지, Firestore 보안 규칙이 저장/읽기를 허용하는지 README.md를 참고해 확인해주세요.
     </div>
   </div>
 
@@ -491,7 +506,18 @@
   <span class="lightbox-count" id="lightboxCount"></span>
 </div>
 
-<script>
+<script type="module">
+// ====== Firebase 설정: 아래 값을 본인의 Firebase 프로젝트 값으로 교체하세요 ======
+// (README.md의 안내를 따라 Firebase 콘솔에서 값을 복사해 붙여넣으면 됩니다)
+const firebaseConfig = {
+  apiKey: "AIzaSyAyVYdhkw8syWNK1SLcCAb4FhVfbNSrPvI",
+  authDomain: "motherk-total.firebaseapp.com",
+  projectId: "motherk-total",
+  storageBucket: "motherk-total.firebasestorage.app",
+  messagingSenderId: "928798462738",
+  appId: "1:928798462738:web:a1b12dc46d01e6554359cb"
+};
+// ================================================================================
 (function(){
   const el = (tag, attrs={}, children=[]) => {
     const e = document.createElement(tag);
@@ -515,6 +541,7 @@
 
   let currentMeta = null; // {id,label,sections:[{id,title,type,table:{columns,rows}}]}
   let imagesCache = {};
+  let imageIdsCache = {};
   const saveTimers = {}; // keyed per save-target, so edits never cancel each other out
   let lastSavedAt = null;
   let dirty = false;
@@ -541,59 +568,61 @@
   function markDirty(){ dirty = true; renderSaveStatus(); }
   function markSaved(){ dirty = false; lastSavedAt = new Date(); renderSaveStatus(); }
 
-  // ---------- IndexedDB storage layer (plain browser API — works anywhere, no platform dependency) ----------
-  const DB_NAME = 'adReportDashboardDB';
-  const STORE_NAME = 'kv';
-  let dbPromise = null;
-  function openDB(){
-    if (dbPromise) return dbPromise;
-    dbPromise = new Promise((resolve, reject) => {
-      if (!window.indexedDB){ reject(new Error('IndexedDB unavailable')); return; }
-      const req = indexedDB.open(DB_NAME, 1);
-      req.onupgradeneeded = () => { req.result.createObjectStore(STORE_NAME); };
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    });
-    return dbPromise;
+  // ---------- Firebase Firestore storage layer (shared backend so teammates see the same data) ----------
+  // Firestore document IDs can't contain "/", so all our keys (which use ":") are safe as-is.
+  const FS_COLLECTION = 'mkAdReportData';
+  let fsDb = null;
+  let fsReady = null;
+
+  function initFirebase(){
+    if (fsReady) return fsReady;
+    fsReady = (async () => {
+      if (!firebaseConfig || firebaseConfig.apiKey === 'YOUR_API_KEY_HERE'){
+        throw new Error('firebase-not-configured');
+      }
+      const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
+      const firestore = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+      const app = initializeApp(firebaseConfig);
+      fsDb = firestore.getFirestore(app);
+      window.__fs = firestore; // keep the module functions handy for the helpers below
+      return true;
+    })();
+    return fsReady;
   }
-  function idbGet(key){
-    return openDB().then(db => new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, 'readonly');
-      const req = tx.objectStore(STORE_NAME).get(key);
-      req.onsuccess = () => resolve(req.result === undefined ? null : req.result);
-      req.onerror = () => reject(req.error);
-    }));
-  }
-  function idbSet(key, value){
-    return openDB().then(db => new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, 'readwrite');
-      tx.objectStore(STORE_NAME).put(value, key);
-      tx.oncomplete = () => resolve(true);
-      tx.onerror = () => reject(tx.error);
-    }));
-  }
-  function idbDelete(key){
-    return openDB().then(db => new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_NAME, 'readwrite');
-      tx.objectStore(STORE_NAME).delete(key);
-      tx.oncomplete = () => resolve(true);
-      tx.onerror = () => reject(tx.error);
-    }));
-  }
+
   async function storageGet(key){
-    try{ const v = await idbGet(key); return v === null || v === undefined ? null : v; }
-    catch(e){ return null; }
+    try{
+      await initFirebase();
+      const fs = window.__fs;
+      const snap = await fs.getDoc(fs.doc(fsDb, FS_COLLECTION, key));
+      return snap.exists() ? snap.data().value : null;
+    }catch(e){
+      if (e.message !== 'firebase-not-configured') console.error('불러오기 실패', key, e);
+      return null;
+    }
   }
   async function storageSet(key, value){
-    try{ await idbSet(key, value); return true; }
-    catch(e){
-      console.error('저장 실패', key, e);
-      flashSaved('⚠ 저장 실패 - 브라우저 저장 공간을 확인해주세요');
+    try{
+      await initFirebase();
+      const fs = window.__fs;
+      await fs.setDoc(fs.doc(fsDb, FS_COLLECTION, key), { value, updatedAt: Date.now() });
+      return true;
+    }catch(e){
+      if (e.message === 'firebase-not-configured'){
+        showConfigScreen();
+      } else {
+        console.error('저장 실패', key, e);
+        flashSaved('⚠ 저장 실패 - 인터넷 연결 또는 Firebase 설정을 확인해주세요');
+      }
       return false;
     }
   }
   async function storageDelete(key){
-    try{ await idbDelete(key); }catch(e){}
+    try{
+      await initFirebase();
+      const fs = window.__fs;
+      await fs.deleteDoc(fs.doc(fsDb, FS_COLLECTION, key));
+    }catch(e){ /* best effort */ }
   }
   // Each save target (meta, or a specific section's images) gets its own timer
   // so unrelated edits never cancel each other's pending save.
@@ -626,7 +655,8 @@
     months: (chId,yrId) => `ch:${chId}:yr:${yrId}:months-index`,
     weeks: (chId,yrId,moId) => `ch:${chId}:yr:${yrId}:mo:${moId}:weeks-index`,
     weekMeta: (weekId) => `week:${weekId}:meta`,
-    images: (sectionId) => `images:${sectionId}`,
+    imageIndex: (sectionId) => `imgidx:${sectionId}`,
+    imageDoc: (sectionId, imgId) => `img:${sectionId}:${imgId}`,
   };
   async function loadIndex(key){
     const raw = await storageGet(key);
@@ -638,7 +668,7 @@
   }
 
   // ---------- image compression ----------
-  function fileToCompressedDataUrl(file, maxW=1000, quality=0.82){
+  function fileToCompressedDataUrl(file, maxW=900, quality=0.78){
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -690,11 +720,28 @@
     await storageSet(K.weekMeta(currentMeta.id), JSON.stringify(currentMeta));
   }
   async function loadImagesFor(sectionId){
-    const raw = await storageGet(K.images(sectionId));
-    return raw ? JSON.parse(raw) : [];
+    const idxRaw = await storageGet(K.imageIndex(sectionId));
+    const ids = idxRaw ? JSON.parse(idxRaw) : [];
+    const srcs = [];
+    const okIds = [];
+    for (const id of ids){
+      const v = await storageGet(K.imageDoc(sectionId, id));
+      if (v !== null){ srcs.push(v); okIds.push(id); }
+    }
+    imagesCache[sectionId] = srcs;
+    imageIdsCache[sectionId] = okIds;
+    return srcs;
   }
   async function saveImagesFor(sectionId){
-    await storageSet(K.images(sectionId), JSON.stringify(imagesCache[sectionId] || []));
+    const srcs = imagesCache[sectionId] || [];
+    let ids = imageIdsCache[sectionId] || [];
+    while (ids.length < srcs.length) ids.push(uid());
+    ids = ids.slice(0, srcs.length);
+    imageIdsCache[sectionId] = ids;
+    await storageSet(K.imageIndex(sectionId), JSON.stringify(ids));
+    for (let i = 0; i < srcs.length; i++){
+      await storageSet(K.imageDoc(sectionId, ids[i]), srcs[i]);
+    }
   }
   function scheduleMetaSave(){ debouncedSave('meta:' + (currentMeta ? currentMeta.id : ''), saveCurrentMeta); }
   function scheduleImageSave(sectionId){ debouncedSave('img:' + sectionId, () => saveImagesFor(sectionId)); }
@@ -799,8 +846,9 @@
       await saveCurrentMeta();
     }
     imagesCache = {};
+    imageIdsCache = {};
     for (const s of currentMeta.sections){
-      imagesCache[s.id] = await loadImagesFor(s.id);
+      await loadImagesFor(s.id);
     }
     renderAllNav(); renderSections();
   }
@@ -848,7 +896,14 @@
   }
   async function deepDeleteWeek(weekId){
     const meta = await loadWeekMeta(weekId);
-    if (meta){ for (const s of meta.sections) await storageDelete(K.images(s.id)); }
+    if (meta){
+      for (const s of meta.sections){
+        const idxRaw = await storageGet(K.imageIndex(s.id));
+        const ids = idxRaw ? JSON.parse(idxRaw) : [];
+        for (const id of ids) await storageDelete(K.imageDoc(s.id, id));
+        await storageDelete(K.imageIndex(s.id));
+      }
+    }
     await storageDelete(K.weekMeta(weekId));
   }
 
@@ -1042,7 +1097,11 @@
       tile.appendChild(imgEl);
       if (!viewMode){
         tile.appendChild(el('button', {class:'img-remove', onclick: () => {
+          const ids = imageIdsCache[section.id];
+          const removedId = ids ? ids[idx] : null;
           imgs.splice(idx, 1);
+          if (ids) ids.splice(idx, 1);
+          if (removedId) storageDelete(K.imageDoc(section.id, removedId));
           scheduleImageSave(section.id); renderSections();
         }}, [document.createTextNode('✕')]));
       }
@@ -1446,7 +1505,11 @@
             await storageSet(K.weekMeta(wk.id), JSON.stringify(meta));
             for (const s of meta.sections){
               const imgs = bundle.images[s.id] || [];
-              await storageSet(K.images(s.id), JSON.stringify(imgs));
+              const ids = imgs.map(() => uid());
+              await storageSet(K.imageIndex(s.id), JSON.stringify(ids));
+              for (let i = 0; i < imgs.length; i++){
+                await storageSet(K.imageDoc(s.id, ids[i]), imgs[i]);
+              }
             }
           }
         }
@@ -1465,11 +1528,18 @@
   });
 
   // ---------- home / editor screen switching ----------
+  function showConfigScreen(){
+    document.getElementById('configScreen').classList.remove('hidden');
+    document.getElementById('homeScreen').classList.add('hidden');
+    document.getElementById('editorScreen').classList.add('hidden');
+  }
   function showHome(){
+    document.getElementById('configScreen').classList.add('hidden');
     document.getElementById('homeScreen').classList.remove('hidden');
     document.getElementById('editorScreen').classList.add('hidden');
   }
   function showEditor(){
+    document.getElementById('configScreen').classList.add('hidden');
     document.getElementById('homeScreen').classList.add('hidden');
     document.getElementById('editorScreen').classList.remove('hidden');
   }
@@ -1491,6 +1561,10 @@
 
   // ---------- init ----------
   async function init(){
+    if (!firebaseConfig || firebaseConfig.apiKey === 'YOUR_API_KEY_HERE'){
+      showConfigScreen();
+      return;
+    }
     sectionsContainer.innerHTML = '<div class="empty"><strong>불러오는 중…</strong>잠시만 기다려주세요</div>';
     const storageOk = await testStorageWorks();
     if (!storageOk){
@@ -1499,7 +1573,7 @@
     channels = await loadIndex(K.channels());
     renderAllNav();
     renderSections();
-    // Land on the home screen — the editor is reached via "새 리포트 만들기" or "불러오기".
+    showHome();
   }
   init();
 })();
