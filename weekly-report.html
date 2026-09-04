@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>광고 성과 리포트</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#EFEDE6;
+    --paper-alt:#E7E2D6;
+    --card:#FBFAF7;
+    --ink:#24231F;
+    --ink-soft:#5B584E;
+    --ink-faint:#8B8878;
+    --line:#D9D3C6;
+    --line-strong:#C8C1B1;
+    --teal:#2F6B5E;
+    --teal-bg:#E4EDE9;
+    --rust:#A8532E;
+    --rust-bg:#F3E6DE;
+    --mustard:#C89B3C;
+    --mustard-bg:#F3E9D2;
+    --white:#FFFFFF;
+    --radius:2px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Noto Sans KR',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  ::selection{background:var(--mustard);color:var(--ink);}
+  .wrap{max-width:1040px;margin:0 auto;padding:36px 28px 120px;}
+
+  /* header */
+  header.top{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    border-bottom:2px solid var(--ink);
+    padding-bottom:16px;margin-bottom:18px;
+    gap:16px;flex-wrap:wrap;
+  }
+  .brand h1{
+    font-family:'Noto Serif KR',serif;
+    font-weight:700;
+    font-size:25px;
+    margin:0 0 4px;
+    letter-spacing:-0.01em;
+  }
+  .brand p.breadcrumb{
+    margin:0;color:var(--ink-soft);font-size:13px;
+  }
+  .brand p.breadcrumb span.sep{margin:0 6px;color:var(--line-strong);}
+  .mode-toggle{
+    display:flex;gap:0;border:1px solid var(--ink);border-radius:var(--radius);overflow:hidden;
+    height:34px;flex-shrink:0;
+  }
+  .mode-toggle button{
+    border:none;background:var(--card);color:var(--ink);
+    font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:600;
+    padding:0 16px;cursor:pointer;
+  }
+  .mode-toggle button.active{background:var(--ink);color:var(--white);}
+  .mode-toggle button:not(.active):hover{background:var(--paper-alt);}
+
+  .header-actions{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+  .save-cluster{display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
+  .save-btn{
+    border:1px solid var(--ink);background:var(--ink);color:var(--white);
+    font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:700;
+    padding:0 18px;height:34px;border-radius:var(--radius);cursor:pointer;
+  }
+  .save-btn:hover{background:var(--teal);border-color:var(--teal);}
+  .save-btn:disabled{opacity:0.45;cursor:default;background:var(--ink);border-color:var(--ink);}
+  .save-status{font-size:11px;color:var(--ink-faint);}
+  .browse-btn{
+    border:1px solid var(--line-strong);background:var(--card);color:var(--ink);
+    font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:600;
+    padding:0 16px;height:34px;border-radius:var(--radius);cursor:pointer;
+  }
+  .browse-btn:hover{border-color:var(--ink);}
+
+  .storage-warning{
+    background:var(--rust-bg);border:1px solid var(--rust);color:#7a3a1f;
+    font-size:12.5px;line-height:1.6;padding:10px 14px;margin-bottom:18px;border-radius:var(--radius);
+  }
+  .storage-warning.hidden{display:none;}
+
+  /* browse modal */
+  .modal-backdrop{
+    position:fixed;inset:0;background:rgba(36,35,31,0.55);
+    display:flex;align-items:flex-start;justify-content:center;
+    padding:5vh 20px;z-index:100;overflow-y:auto;
+  }
+  .modal-backdrop.hidden{display:none;}
+  .modal-panel{
+    background:var(--card);border:1px solid var(--ink);max-width:640px;width:100%;
+    max-height:88vh;display:flex;flex-direction:column;
+  }
+  .modal-head{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:16px 20px;border-bottom:2px solid var(--ink);flex-shrink:0;
+  }
+  .modal-head h2{font-family:'Noto Serif KR',serif;font-size:18px;margin:0;font-weight:700;}
+  .modal-close{border:none;background:none;font-size:20px;color:var(--ink-soft);cursor:pointer;line-height:1;padding:2px 6px;}
+  .modal-close:hover{color:var(--rust);}
+  .modal-body{padding:8px 20px 20px;overflow-y:auto;}
+
+  .tree-channel{border-bottom:1px solid var(--line);padding:10px 0;}
+  .tree-channel:last-child{border-bottom:none;}
+  .tree-row{
+    display:flex;align-items:center;gap:8px;padding:7px 6px;cursor:pointer;
+    border-radius:var(--radius);font-size:13.5px;
+  }
+  .tree-row:hover{background:var(--paper-alt);}
+  .tree-row.leaf{cursor:pointer;}
+  .tree-row.leaf:hover{background:var(--teal-bg);color:var(--teal);}
+  .tree-toggle{width:14px;flex-shrink:0;color:var(--ink-faint);font-size:11px;}
+  .tree-name{font-weight:600;}
+  .tree-level-year .tree-row{padding-left:22px;font-weight:500;}
+  .tree-level-month .tree-row{padding-left:40px;}
+  .tree-level-week .tree-row{padding-left:58px;font-weight:400;color:var(--ink-soft);}
+  .tree-level-week .tree-row.leaf:hover{color:var(--teal);}
+  .tree-children{border-left:1px solid var(--line);margin-left:15px;}
+  .tree-empty-msg{font-size:12px;color:var(--ink-faint);padding:4px 0 4px 22px;}
+  .modal-loading{padding:30px;text-align:center;color:var(--ink-soft);font-size:13px;}
+
+  /* nav levels (breadcrumb drill-down) */
+  .nav-levels{margin-bottom:26px;border:1px solid var(--line);background:var(--card);}
+  .nav-level{
+    display:flex;align-items:center;gap:8px;padding:9px 14px;
+    border-bottom:1px solid var(--line);overflow-x:auto;
+  }
+  .nav-level:last-child{border-bottom:none;}
+  .nav-level.dim{opacity:0.4;pointer-events:none;}
+  .nav-label{
+    font-size:11.5px;color:var(--ink-faint);flex-shrink:0;width:34px;font-weight:600;
+  }
+  .nav-tabs{display:flex;gap:5px;flex-wrap:nowrap;overflow-x:auto;}
+  .nav-tab{
+    font-family:'Noto Sans KR',sans-serif;font-size:13px;font-weight:500;
+    padding:6px 13px;border:1px solid var(--line-strong);background:var(--paper-alt);
+    color:var(--ink-soft);border-radius:var(--radius);cursor:pointer;white-space:nowrap;
+  }
+  .nav-tab.active{background:var(--ink);color:var(--white);border-color:var(--ink);font-weight:600;}
+  .nav-tab:hover:not(.active){background:#DEDACD;}
+  .nav-add{
+    font-size:12.5px;font-weight:600;color:var(--teal);
+    background:none;border:1px dashed var(--line-strong);
+    padding:6px 12px;border-radius:var(--radius);cursor:pointer;white-space:nowrap;flex-shrink:0;
+  }
+  .nav-add:hover{border-color:var(--teal);background:var(--teal-bg);}
+  .nav-manage{margin-left:auto;display:flex;gap:5px;flex-shrink:0;padding-left:10px;}
+  .icon-btn{
+    border:1px solid var(--line-strong);background:var(--card);
+    color:var(--ink-soft);font-size:11.5px;padding:6px 10px;
+    border-radius:var(--radius);cursor:pointer;white-space:nowrap;
+  }
+  .icon-btn:hover{border-color:var(--rust);color:var(--rust);}
+
+  /* empty state */
+  .empty{
+    border:1px dashed var(--line-strong);padding:56px 30px;text-align:center;
+    color:var(--ink-soft);font-size:14px;background:var(--card);
+  }
+  .empty strong{display:block;font-family:'Noto Serif KR',serif;font-size:18px;color:var(--ink);margin-bottom:8px;font-weight:600;}
+  .empty button{
+    margin-top:18px;background:var(--ink);color:var(--white);border:none;
+    padding:10px 22px;font-size:13.5px;font-weight:600;border-radius:var(--radius);cursor:pointer;
+  }
+
+  /* sections */
+  .section{
+    background:var(--card);border:1px solid var(--line);
+    margin-bottom:22px;
+  }
+  .section.type-ad{border-left:3px solid var(--teal);}
+  .section.type-message{border-left:3px solid var(--mustard);}
+  .section-head{
+    display:flex;align-items:center;gap:14px;
+    padding:16px 20px;border-bottom:1px solid var(--line);
+  }
+  .section-idx{
+    font-family:'Noto Serif KR',serif;font-weight:600;font-size:14px;
+    color:var(--ink-soft);flex-shrink:0;min-width:22px;
+  }
+  .section-type-tag{
+    font-size:11px;font-weight:600;padding:3px 8px;border-radius:var(--radius);flex-shrink:0;
+  }
+  .type-ad .section-type-tag{background:var(--teal-bg);color:var(--teal);}
+  .type-message .section-type-tag{background:var(--mustard-bg);color:#8a6a1f;}
+  .section-title-input{
+    flex:1;font-family:'Noto Serif KR',serif;font-weight:600;font-size:17px;
+    border:none;background:none;color:var(--ink);padding:4px 2px;min-width:0;
+  }
+  .section-title-input:focus{outline:none;border-bottom:1px solid var(--ink);}
+  .section-title-view{
+    flex:1;font-family:'Noto Serif KR',serif;font-weight:600;font-size:17px;color:var(--ink);
+  }
+  .section-actions{display:flex;gap:4px;flex-shrink:0;}
+  .mini-btn{
+    border:1px solid var(--line-strong);background:var(--paper-alt);color:var(--ink-soft);
+    width:28px;height:28px;font-size:13px;border-radius:var(--radius);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .mini-btn:hover{background:var(--paper);border-color:var(--ink);color:var(--ink);}
+  .mini-btn.danger:hover{border-color:var(--rust);color:var(--rust);background:var(--rust-bg);}
+
+  .section-body{padding:18px 20px 22px;}
+
+  /* images */
+  .img-grid{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+    gap:10px;margin-bottom:20px;
+  }
+  .img-tile{
+    position:relative;aspect-ratio:16/10;border:1px solid var(--line);
+    background:var(--paper-alt);overflow:hidden;border-radius:var(--radius);
+  }
+  .img-tile img{width:100%;height:100%;object-fit:cover;display:block;}
+  .img-remove{
+    position:absolute;top:5px;right:5px;width:22px;height:22px;
+    background:rgba(36,35,31,0.82);color:#fff;border:none;border-radius:50%;
+    font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    opacity:0;transition:opacity .12s;
+  }
+  .img-tile:hover .img-remove{opacity:1;}
+  .img-add{
+    aspect-ratio:16/10;border:1.5px dashed var(--line-strong);border-radius:var(--radius);
+    background:var(--paper);display:flex;flex-direction:column;align-items:center;justify-content:center;
+    color:var(--ink-soft);cursor:pointer;gap:4px;font-size:12px;text-align:center;padding:8px;
+  }
+  .img-add:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-bg);}
+  .img-add.dragover{border-color:var(--teal);background:var(--teal-bg);color:var(--teal);}
+  .img-add .plus{font-size:22px;line-height:1;font-weight:400;}
+
+  /* table */
+  .table-scroll{overflow-x:auto;}
+  table.data-table{border-collapse:collapse;width:100%;min-width:560px;font-size:13px;}
+  table.data-table th, table.data-table td{
+    border:1px solid var(--line);padding:0;
+  }
+  table.data-table thead th{background:var(--ink);}
+  table.data-table thead input{
+    width:100%;background:none;border:none;color:var(--white);
+    font-weight:600;font-size:12.5px;padding:9px 10px;text-align:center;font-family:'Noto Sans KR',sans-serif;
+  }
+  table.data-table thead input:focus{outline:1px solid var(--mustard);}
+  table.data-table tbody tr:nth-child(even){background:var(--paper-alt);}
+  table.data-table tbody input{
+    width:100%;background:none;border:none;color:var(--ink);
+    font-size:13px;padding:8px 10px;text-align:center;font-family:'Noto Sans KR',sans-serif;
+    font-variant-numeric:tabular-nums;
+  }
+  table.data-table tbody input:focus{outline:1px solid var(--teal);background:var(--white);}
+  .col-roas input, .col-roas{color:var(--teal) !important;font-weight:700;}
+  .col-cost input, .col-cost{color:var(--rust) !important;}
+  .col-rate input, .col-rate{color:var(--ink-soft) !important;}
+  .row-del-cell{width:30px;text-align:center;background:var(--paper-alt);}
+  .row-del-cell button{border:none;background:none;color:var(--line-strong);cursor:pointer;font-size:13px;}
+  .row-del-cell button:hover{color:var(--rust);}
+  .col-del-cell{background:var(--ink);text-align:center;width:26px;}
+  .col-del-cell button{border:none;background:none;color:#8b8a7f;cursor:pointer;font-size:11px;}
+  .col-del-cell button:hover{color:var(--mustard);}
+
+  .table-tools{display:flex;gap:8px;margin-top:10px;}
+  .table-tools button{
+    border:1px solid var(--line-strong);background:var(--paper-alt);color:var(--ink-soft);
+    font-size:12px;padding:6px 12px;border-radius:var(--radius);cursor:pointer;
+  }
+  .table-tools button:hover{border-color:var(--ink);color:var(--ink);}
+
+  /* add section buttons */
+  .add-section-row{display:flex;gap:10px;flex-wrap:wrap;}
+  .add-section-btn{
+    flex:1;min-width:220px;border:1.5px dashed var(--line-strong);background:none;color:var(--ink-soft);
+    padding:16px;font-size:13.5px;font-weight:600;font-family:'Noto Sans KR',sans-serif;
+    cursor:pointer;border-radius:var(--radius);
+  }
+  .add-section-btn.ad:hover{border-color:var(--teal);color:var(--teal);background:var(--teal-bg);}
+  .add-section-btn.message:hover{border-color:var(--mustard);color:#8a6a1f;background:var(--mustard-bg);}
+
+  .save-indicator{
+    position:fixed;bottom:20px;right:24px;background:var(--ink);color:var(--white);
+    font-size:12px;padding:8px 14px;border-radius:var(--radius);opacity:0;transition:opacity .25s;
+    pointer-events:none;
+  }
+  .save-indicator.show{opacity:0.92;}
+
+  footer.note{
+    margin-top:30px;font-size:11.5px;color:var(--ink-soft);line-height:1.6;
+    border-top:1px solid var(--line);padding-top:14px;
+  }
+
+  .view-mode .section-title-input,.view-mode .mini-btn,.view-mode .img-add,.view-mode .img-remove,
+  .view-mode .table-tools,.view-mode .row-del-cell,.view-mode .col-del-cell,.view-mode .add-section-row,
+  .view-mode .nav-add,.view-mode .nav-manage,.view-mode .save-cluster{display:none !important;}
+  .view-mode table.data-table thead input,.view-mode table.data-table tbody input{cursor:default;}
+  .view-mode .img-grid{grid-template-columns:repeat(auto-fill,minmax(180px,1fr));}
+
+  @media (max-width:640px){
+    .wrap{padding:22px 14px 100px;}
+    header.top{flex-direction:column;align-items:flex-start;}
+    table.data-table{font-size:12px;}
+    .nav-label{width:auto;margin-right:2px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>광고 성과 리포트</h1>
+      <p class="breadcrumb" id="breadcrumb">채널을 선택하거나 추가해주세요</p>
+    </div>
+    <div class="header-actions">
+      <button class="browse-btn" id="browseBtn">전체 목록</button>
+      <button class="browse-btn" id="exportBtn">내보내기</button>
+      <button class="browse-btn" id="importBtn">불러오기</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none">
+      <div class="save-cluster">
+        <button class="save-btn" id="saveBtn">지금 저장</button>
+        <span class="save-status" id="saveStatus">저장된 변경사항 없음</span>
+      </div>
+      <div class="mode-toggle">
+        <button id="btnEdit" class="active">편집</button>
+        <button id="btnView">보기</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="storage-warning hidden" id="storageWarning">
+    ⚠ 이 브라우저에서는 저장 기능(IndexedDB)을 사용할 수 없어요 — 시크릿/프라이빗 모드이거나 브라우저 설정에서 차단되어 있을 수 있습니다. 일반 창에서 열거나, 작업 후 "내보내기"로 파일을 꼭 백업해주세요.
+  </div>
+
+  <div class="nav-levels">
+    <div class="nav-level" id="rowChannel">
+      <span class="nav-label">채널</span>
+      <div class="nav-tabs" id="tabsChannel"></div>
+    </div>
+    <div class="nav-level" id="rowYear">
+      <span class="nav-label">연도</span>
+      <div class="nav-tabs" id="tabsYear"></div>
+    </div>
+    <div class="nav-level" id="rowMonth">
+      <span class="nav-label">월</span>
+      <div class="nav-tabs" id="tabsMonth"></div>
+    </div>
+    <div class="nav-level" id="rowWeek">
+      <span class="nav-label">주차</span>
+      <div class="nav-tabs" id="tabsWeek"></div>
+    </div>
+  </div>
+
+  <main id="sectionsContainer"></main>
+
+  <div class="add-section-row" id="addSectionRow" style="display:none;">
+    <button class="add-section-btn ad" id="addAdSectionBtn">+ 광고 소재 섹션 추가 (이미지 여러 장 + 프로모션 표)</button>
+    <button class="add-section-btn message" id="addMsgSectionBtn">+ 메시지 섹션 추가 (발송 배너 + 메시지별 성과표)</button>
+  </div>
+
+  <footer class="note">
+    이 파일은 오픈 후 브라우저(이 기기·이 브라우저)에 안전하게 저장됩니다 · 다른 사람과 공유하려면 상단 "내보내기"로 받은 파일을 전달하거나, 이 HTML 파일 자체를 함께 열람용으로 전달해주세요 · 이미지는 자동으로 압축되어 저장됩니다
+  </footer>
+</div>
+
+<div class="save-indicator" id="saveIndicator">저장됨</div>
+
+<div class="modal-backdrop hidden" id="browseModal">
+  <div class="modal-panel">
+    <div class="modal-head">
+      <h2>전체 목록</h2>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="icon-btn" id="browseRefreshBtn">새로고침</button>
+        <button class="modal-close" id="browseCloseBtn">✕</button>
+      </div>
+    </div>
+    <div class="modal-body" id="browseBody"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const el = (tag, attrs={}, children=[]) => {
+    const e = document.createElement(tag);
+    for (const k in attrs){
+      if (k === 'class') e.className = attrs[k];
+      else if (k === 'html') e.innerHTML = attrs[k];
+      else if (k.startsWith('on')) e.addEventListener(k.slice(2), attrs[k]);
+      else e.setAttribute(k, attrs[k]);
+    }
+    children.forEach(c => e.appendChild(c));
+    return e;
+  };
+  const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'id-' + Math.random().toString(36).slice(2) + Date.now());
+
+  let viewMode = false;
+
+  let channels = [], currentChannelId = null;
+  let years = [], currentYearId = null;
+  let months = [], currentMonthId = null;
+  let weeks = [], currentWeekId = null;
+
+  let currentMeta = null; // {id,label,sections:[{id,title,type,table:{columns,rows}}]}
+  let imagesCache = {};
+  const saveTimers = {}; // keyed per save-target, so edits never cancel each other out
+  let lastSavedAt = null;
+  let dirty = false;
+
+  const saveIndicator = document.getElementById('saveIndicator');
+  function flashSaved(message){
+    const isError = message && message.startsWith('⚠');
+    saveIndicator.textContent = message || '저장됨';
+    saveIndicator.style.background = isError ? 'var(--rust)' : 'var(--ink)';
+    saveIndicator.classList.add('show');
+    clearTimeout(flashSaved._t);
+    flashSaved._t = setTimeout(()=>saveIndicator.classList.remove('show'), isError ? 3200 : 1400);
+  }
+  function formatTime(d){
+    return d.toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'});
+  }
+  function renderSaveStatus(){
+    const s = document.getElementById('saveStatus');
+    if (!s) return;
+    if (dirty) s.textContent = '저장 중…';
+    else if (lastSavedAt) s.textContent = `마지막 저장 ${formatTime(lastSavedAt)}`;
+    else s.textContent = '저장된 변경사항 없음';
+  }
+  function markDirty(){ dirty = true; renderSaveStatus(); }
+  function markSaved(){ dirty = false; lastSavedAt = new Date(); renderSaveStatus(); }
+
+  // ---------- IndexedDB storage layer (plain browser API — works anywhere, no platform dependency) ----------
+  const DB_NAME = 'adReportDashboardDB';
+  const STORE_NAME = 'kv';
+  let dbPromise = null;
+  function openDB(){
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise((resolve, reject) => {
+      if (!window.indexedDB){ reject(new Error('IndexedDB unavailable')); return; }
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = () => { req.result.createObjectStore(STORE_NAME); };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    return dbPromise;
+  }
+  function idbGet(key){
+    return openDB().then(db => new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readonly');
+      const req = tx.objectStore(STORE_NAME).get(key);
+      req.onsuccess = () => resolve(req.result === undefined ? null : req.result);
+      req.onerror = () => reject(req.error);
+    }));
+  }
+  function idbSet(key, value){
+    return openDB().then(db => new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).put(value, key);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => reject(tx.error);
+    }));
+  }
+  function idbDelete(key){
+    return openDB().then(db => new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      tx.objectStore(STORE_NAME).delete(key);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => reject(tx.error);
+    }));
+  }
+  async function storageGet(key){
+    try{ const v = await idbGet(key); return v === null || v === undefined ? null : v; }
+    catch(e){ return null; }
+  }
+  async function storageSet(key, value){
+    try{ await idbSet(key, value); return true; }
+    catch(e){
+      console.error('저장 실패', key, e);
+      flashSaved('⚠ 저장 실패 - 브라우저 저장 공간을 확인해주세요');
+      return false;
+    }
+  }
+  async function storageDelete(key){
+    try{ await idbDelete(key); }catch(e){}
+  }
+  // Each save target (meta, or a specific section's images) gets its own timer
+  // so unrelated edits never cancel each other's pending save.
+  function debouncedSave(key, fn, delay=600){
+    markDirty();
+    clearTimeout(saveTimers[key]);
+    saveTimers[key] = setTimeout(async () => {
+      await fn();
+      delete saveTimers[key];
+      if (Object.keys(saveTimers).length === 0) markSaved();
+    }, delay);
+  }
+  async function flushSaveAll(){
+    Object.values(saveTimers).forEach(t => clearTimeout(t));
+    Object.keys(saveTimers).forEach(k => delete saveTimers[k]);
+    if (currentMeta){
+      await saveCurrentMeta();
+      for (const s of currentMeta.sections){
+        await saveImagesFor(s.id);
+      }
+    }
+    markSaved();
+    flashSaved('저장 완료');
+  }
+
+  // ---------- key builders ----------
+  const K = {
+    channels: () => 'channels-index',
+    years: (chId) => `ch:${chId}:years-index`,
+    months: (chId,yrId) => `ch:${chId}:yr:${yrId}:months-index`,
+    weeks: (chId,yrId,moId) => `ch:${chId}:yr:${yrId}:mo:${moId}:weeks-index`,
+    weekMeta: (weekId) => `week:${weekId}:meta`,
+    images: (sectionId) => `images:${sectionId}`,
+  };
+  async function loadIndex(key){
+    const raw = await storageGet(key);
+    return raw ? JSON.parse(raw) : [];
+  }
+  async function saveIndex(key, arr){
+    await storageSet(key, JSON.stringify(arr));
+    markSaved();
+  }
+
+  // ---------- image compression ----------
+  function fileToCompressedDataUrl(file, maxW=1000, quality=0.82){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          let w = img.width, h = img.height;
+          if (w > maxW){ h = Math.round(h * (maxW / w)); w = maxW; }
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // ---------- default content ----------
+  function defaultTable(type){
+    if (type === 'message'){
+      return {
+        columns: ['메시지명', '비용', '발송수', '열람수', '열람율', '클릭수', '클릭률', '전환매출', 'ROAS'],
+        rows: [['', '', '', '', '', '', '', '', '']]
+      };
+    }
+    return {
+      columns: ['프로모션', '비용', '노출수', '클릭수', 'CTR', '전환매출', 'ROAS'],
+      rows: [['', '', '', '', '', '', '']]
+    };
+  }
+  function newSection(type, title=''){
+    return { id: uid(), type, title, table: defaultTable(type) };
+  }
+  function newWeekMeta(id, label){
+    return { id, label, sections: [ newSection('ad', '') ] };
+  }
+
+  // ---------- week meta / images ----------
+  async function loadWeekMeta(weekId){
+    const raw = await storageGet(K.weekMeta(weekId));
+    return raw ? JSON.parse(raw) : null;
+  }
+  async function saveCurrentMeta(){
+    if (!currentMeta) return;
+    await storageSet(K.weekMeta(currentMeta.id), JSON.stringify(currentMeta));
+  }
+  async function loadImagesFor(sectionId){
+    const raw = await storageGet(K.images(sectionId));
+    return raw ? JSON.parse(raw) : [];
+  }
+  async function saveImagesFor(sectionId){
+    await storageSet(K.images(sectionId), JSON.stringify(imagesCache[sectionId] || []));
+  }
+  function scheduleMetaSave(){ debouncedSave('meta:' + (currentMeta ? currentMeta.id : ''), saveCurrentMeta); }
+  function scheduleImageSave(sectionId){ debouncedSave('img:' + sectionId, () => saveImagesFor(sectionId)); }
+
+  // ---------- breadcrumb ----------
+  function updateBreadcrumb(){
+    const parts = [];
+    const ch = channels.find(c => c.id === currentChannelId);
+    const yr = years.find(y => y.id === currentYearId);
+    const mo = months.find(m => m.id === currentMonthId);
+    const wk = weeks.find(w => w.id === currentWeekId);
+    if (ch) parts.push(ch.label);
+    if (yr) parts.push(yr.label);
+    if (mo) parts.push(mo.label);
+    if (wk) parts.push(wk.label);
+    const bc = document.getElementById('breadcrumb');
+    if (parts.length === 0){
+      bc.textContent = '채널을 선택하거나 추가해주세요';
+    } else {
+      bc.innerHTML = '';
+      parts.forEach((p, i) => {
+        if (i > 0) bc.appendChild(el('span', {class:'sep'}, [document.createTextNode('›')]));
+        bc.appendChild(document.createTextNode(p));
+      });
+    }
+  }
+
+  // ---------- generic nav row renderer ----------
+  function renderNavRow(containerId, rowId, items, currentId, opts){
+    const tabsEl = document.getElementById(containerId);
+    const rowEl = document.getElementById(rowId);
+    tabsEl.innerHTML = '';
+    rowEl.classList.toggle('dim', !!opts.disabled);
+    items.forEach(item => {
+      const tab = el('button', {
+        class: 'nav-tab' + (item.id === currentId ? ' active' : ''),
+        onclick: () => opts.onSelect(item.id)
+      }, [document.createTextNode(item.label)]);
+      tabsEl.appendChild(tab);
+    });
+    if (!viewMode && !opts.disabled){
+      tabsEl.appendChild(el('button', {class:'nav-add', onclick: opts.onAdd}, [document.createTextNode(opts.addLabel)]));
+    }
+    if (!viewMode && currentId && !opts.disabled){
+      const manage = el('div', {class:'nav-manage'});
+      manage.appendChild(el('button', {class:'icon-btn', onclick: opts.onRename}, [document.createTextNode('이름변경')]));
+      manage.appendChild(el('button', {class:'icon-btn', onclick: opts.onDelete}, [document.createTextNode('삭제')]));
+      tabsEl.appendChild(manage);
+    }
+  }
+
+  function renderAllNav(){
+    renderNavRow('tabsChannel', 'rowChannel', channels, currentChannelId, {
+      onSelect: selectChannel, onAdd: addChannel, onRename: renameChannel, onDelete: deleteChannel,
+      addLabel: '+ 채널 추가'
+    });
+    renderNavRow('tabsYear', 'rowYear', years, currentYearId, {
+      onSelect: selectYear, onAdd: addYear, onRename: renameYear, onDelete: deleteYear,
+      addLabel: '+ 연도 추가', disabled: !currentChannelId
+    });
+    renderNavRow('tabsMonth', 'rowMonth', months, currentMonthId, {
+      onSelect: selectMonth, onAdd: addMonth, onRename: renameMonth, onDelete: deleteMonth,
+      addLabel: '+ 월 추가', disabled: !currentYearId
+    });
+    renderNavRow('tabsWeek', 'rowWeek', weeks, currentWeekId, {
+      onSelect: selectWeek, onAdd: addWeek, onRename: renameWeek, onDelete: deleteWeek,
+      addLabel: '+ 주차 추가', disabled: !currentMonthId
+    });
+    updateBreadcrumb();
+  }
+
+  // ---------- select cascade ----------
+  async function selectChannel(id){
+    currentChannelId = id;
+    currentYearId = null; currentMonthId = null; currentWeekId = null; currentMeta = null;
+    years = id ? await loadIndex(K.years(id)) : [];
+    months = []; weeks = [];
+    renderAllNav(); renderSections();
+    if (years.length) await selectYear(years[years.length - 1].id);
+  }
+  async function selectYear(id){
+    currentYearId = id;
+    currentMonthId = null; currentWeekId = null; currentMeta = null;
+    months = id ? await loadIndex(K.months(currentChannelId, id)) : [];
+    weeks = [];
+    renderAllNav(); renderSections();
+    if (months.length) await selectMonth(months[months.length - 1].id);
+  }
+  async function selectMonth(id){
+    currentMonthId = id;
+    currentWeekId = null; currentMeta = null;
+    weeks = id ? await loadIndex(K.weeks(currentChannelId, currentYearId, id)) : [];
+    renderAllNav(); renderSections();
+    if (weeks.length) await selectWeek(weeks[weeks.length - 1].id);
+  }
+  async function selectWeek(id){
+    currentWeekId = id;
+    currentMeta = await loadWeekMeta(id);
+    if (!currentMeta){
+      const w = weeks.find(w => w.id === id);
+      currentMeta = newWeekMeta(id, w ? w.label : '');
+      await saveCurrentMeta();
+    }
+    imagesCache = {};
+    for (const s of currentMeta.sections){
+      imagesCache[s.id] = await loadImagesFor(s.id);
+    }
+    renderAllNav(); renderSections();
+  }
+
+  // ---------- add / rename / delete: channel ----------
+  async function addChannel(){
+    const label = prompt('새 채널 이름을 입력하세요 (예: MK몰, 멘토리)', '');
+    if (label === null || !label.trim()) return;
+    const id = uid();
+    channels.push({ id, label: label.trim() });
+    await saveIndex(K.channels(), channels);
+    await selectChannel(id);
+  }
+  async function renameChannel(){
+    const c = channels.find(c => c.id === currentChannelId);
+    const label = prompt('채널 이름 변경', c ? c.label : '');
+    if (label === null || !label.trim()) return;
+    c.label = label.trim();
+    await saveIndex(K.channels(), channels);
+    renderAllNav();
+  }
+  async function deleteChannel(){
+    const c = channels.find(c => c.id === currentChannelId);
+    if (!confirm(`"${c ? c.label : ''}" 채널과 하위의 모든 연도/월/주차 데이터를 삭제할까요? 되돌릴 수 없습니다.`)) return;
+    await deepDeleteChannel(currentChannelId);
+    channels = channels.filter(x => x.id !== currentChannelId);
+    await saveIndex(K.channels(), channels);
+    if (channels.length) await selectChannel(channels[channels.length - 1].id);
+    else { currentChannelId=null; years=[]; months=[]; weeks=[]; currentMeta=null; renderAllNav(); renderSections(); }
+  }
+  async function deepDeleteChannel(chId){
+    const yrs = await loadIndex(K.years(chId));
+    for (const y of yrs) await deepDeleteYear(chId, y.id);
+    await storageDelete(K.years(chId));
+  }
+  async function deepDeleteYear(chId, yrId){
+    const mos = await loadIndex(K.months(chId, yrId));
+    for (const m of mos) await deepDeleteMonth(chId, yrId, m.id);
+    await storageDelete(K.months(chId, yrId));
+  }
+  async function deepDeleteMonth(chId, yrId, moId){
+    const wks = await loadIndex(K.weeks(chId, yrId, moId));
+    for (const w of wks) await deepDeleteWeek(w.id);
+    await storageDelete(K.weeks(chId, yrId, moId));
+  }
+  async function deepDeleteWeek(weekId){
+    const meta = await loadWeekMeta(weekId);
+    if (meta){ for (const s of meta.sections) await storageDelete(K.images(s.id)); }
+    await storageDelete(K.weekMeta(weekId));
+  }
+
+  // ---------- add / rename / delete: year ----------
+  async function addYear(){
+    const suggestion = String(new Date().getFullYear());
+    const label = prompt('새 연도를 입력하세요', suggestion);
+    if (label === null || !label.trim()) return;
+    const id = uid();
+    years.push({ id, label: label.trim() });
+    await saveIndex(K.years(currentChannelId), years);
+    await selectYear(id);
+  }
+  async function renameYear(){
+    const y = years.find(y => y.id === currentYearId);
+    const label = prompt('연도 이름 변경', y ? y.label : '');
+    if (label === null || !label.trim()) return;
+    y.label = label.trim();
+    await saveIndex(K.years(currentChannelId), years);
+    renderAllNav();
+  }
+  async function deleteYear(){
+    const y = years.find(y => y.id === currentYearId);
+    if (!confirm(`"${y ? y.label : ''}" 연도와 하위 데이터를 삭제할까요?`)) return;
+    await deepDeleteYear(currentChannelId, currentYearId);
+    years = years.filter(x => x.id !== currentYearId);
+    await saveIndex(K.years(currentChannelId), years);
+    if (years.length) await selectYear(years[years.length - 1].id);
+    else { currentYearId=null; months=[]; weeks=[]; currentMeta=null; renderAllNav(); renderSections(); }
+  }
+
+  // ---------- add / rename / delete: month ----------
+  async function addMonth(){
+    const now = new Date();
+    const label = prompt('새 월을 입력하세요 (예: 8월)', (now.getMonth()+1) + '월');
+    if (label === null || !label.trim()) return;
+    const id = uid();
+    months.push({ id, label: label.trim() });
+    await saveIndex(K.months(currentChannelId, currentYearId), months);
+    await selectMonth(id);
+  }
+  async function renameMonth(){
+    const m = months.find(m => m.id === currentMonthId);
+    const label = prompt('월 이름 변경', m ? m.label : '');
+    if (label === null || !label.trim()) return;
+    m.label = label.trim();
+    await saveIndex(K.months(currentChannelId, currentYearId), months);
+    renderAllNav();
+  }
+  async function deleteMonth(){
+    const m = months.find(m => m.id === currentMonthId);
+    if (!confirm(`"${m ? m.label : ''}" 월과 하위 주차 데이터를 삭제할까요?`)) return;
+    await deepDeleteMonth(currentChannelId, currentYearId, currentMonthId);
+    months = months.filter(x => x.id !== currentMonthId);
+    await saveIndex(K.months(currentChannelId, currentYearId), months);
+    if (months.length) await selectMonth(months[months.length - 1].id);
+    else { currentMonthId=null; weeks=[]; currentMeta=null; renderAllNav(); renderSections(); }
+  }
+
+  // ---------- add / rename / delete: week ----------
+  async function addWeek(){
+    const label = prompt('새 주차 이름을 입력하세요 (예: 1주차)', `${weeks.length + 1}주차`);
+    if (label === null || !label.trim()) return;
+    const id = uid();
+    weeks.push({ id, label: label.trim() });
+    await saveIndex(K.weeks(currentChannelId, currentYearId, currentMonthId), weeks);
+    await selectWeek(id);
+  }
+  async function renameWeek(){
+    const w = weeks.find(w => w.id === currentWeekId);
+    const label = prompt('주차 이름 변경', w ? w.label : '');
+    if (label === null || !label.trim()) return;
+    w.label = label.trim();
+    currentMeta.label = w.label;
+    await saveIndex(K.weeks(currentChannelId, currentYearId, currentMonthId), weeks);
+    await saveCurrentMeta();
+    renderAllNav();
+  }
+  async function deleteWeek(){
+    const w = weeks.find(w => w.id === currentWeekId);
+    if (!confirm(`"${w ? w.label : ''}" 주차를 삭제할까요? 되돌릴 수 없습니다.`)) return;
+    await deepDeleteWeek(currentWeekId);
+    weeks = weeks.filter(x => x.id !== currentWeekId);
+    await saveIndex(K.weeks(currentChannelId, currentYearId, currentMonthId), weeks);
+    if (weeks.length) await selectWeek(weeks[weeks.length - 1].id);
+    else { currentWeekId=null; currentMeta=null; renderAllNav(); renderSections(); }
+  }
+
+  // ---------- section rendering ----------
+  const sectionsContainer = document.getElementById('sectionsContainer');
+  const addSectionRow = document.getElementById('addSectionRow');
+
+  function classifyColumn(colName){
+    const n = (colName || '').toUpperCase();
+    if (n.includes('ROAS')) return 'col-roas';
+    if (n.includes('비용') || n.includes('CPC') || n.includes('CPM')) return 'col-cost';
+    if (n.includes('CTR') || n.includes('CVR') || n.includes('율') || n.includes('률')) return 'col-rate';
+    return '';
+  }
+
+  function renderTable(section){
+    const t = section.table;
+    const wrap = el('div', {class:'table-scroll'});
+    const table = el('table', {class:'data-table'});
+
+    const thead = el('thead');
+    const htr = el('tr');
+    t.columns.forEach((colName, ci) => {
+      const th = el('th', {class: classifyColumn(colName)});
+      const input = el('input', {value: colName});
+      input.addEventListener('input', (e) => {
+        t.columns[ci] = e.target.value;
+        th.className = classifyColumn(e.target.value);
+        table.querySelectorAll('tbody tr').forEach(tr => {
+          const td = tr.children[ci];
+          if (td) td.className = th.className;
+        });
+        scheduleMetaSave();
+      });
+      th.appendChild(input);
+      htr.appendChild(th);
+    });
+    if (!viewMode) htr.appendChild(el('th', {class:'col-del-cell'}));
+    thead.appendChild(htr);
+    table.appendChild(thead);
+
+    const tbody = el('tbody');
+    t.rows.forEach((row, ri) => {
+      const tr = el('tr');
+      row.forEach((val, ci) => {
+        const td = el('td', {class: classifyColumn(t.columns[ci])});
+        const input = el('input', {value: val});
+        input.addEventListener('input', (e) => { t.rows[ri][ci] = e.target.value; scheduleMetaSave(); });
+        input.readOnly = viewMode;
+        td.appendChild(input);
+        tr.appendChild(td);
+      });
+      if (!viewMode){
+        const delCell = el('td', {class:'row-del-cell'});
+        delCell.appendChild(el('button', {onclick: () => {
+          t.rows.splice(ri, 1);
+          if (t.rows.length === 0) t.rows.push(t.columns.map(()=>''));
+          scheduleMetaSave(); renderSections();
+        }}, [document.createTextNode('✕')]));
+        tr.appendChild(delCell);
+      }
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+
+    if (!viewMode){
+      const delColBtn = el('button', {onclick: () => {
+        if (t.columns.length <= 1) return;
+        const idx = t.columns.length - 1;
+        t.columns.splice(idx, 1);
+        t.rows.forEach(r => r.splice(idx, 1));
+        scheduleMetaSave(); renderSections();
+      }}, [document.createTextNode('열삭제')]);
+      table.querySelector('.col-del-cell').appendChild(delColBtn);
+    }
+
+    wrap.appendChild(table);
+
+    const container = document.createDocumentFragment();
+    container.appendChild(wrap);
+    if (!viewMode){
+      const tools = el('div', {class:'table-tools'});
+      tools.appendChild(el('button', {onclick: () => {
+        t.rows.push(t.columns.map(()=>''));
+        scheduleMetaSave(); renderSections();
+      }}, [document.createTextNode('+ 행 추가')]));
+      tools.appendChild(el('button', {onclick: () => {
+        t.columns.push('항목');
+        t.rows.forEach(r => r.push(''));
+        scheduleMetaSave(); renderSections();
+      }}, [document.createTextNode('+ 열 추가')]));
+      container.appendChild(tools);
+    }
+    return container;
+  }
+
+  function renderImages(section){
+    const frag = document.createDocumentFragment();
+    const imgs = imagesCache[section.id] || [];
+    if (viewMode && imgs.length === 0) return frag;
+    const grid = el('div', {class:'img-grid'});
+    imgs.forEach((src, idx) => {
+      const tile = el('div', {class:'img-tile'});
+      tile.appendChild(el('img', {src}));
+      if (!viewMode){
+        tile.appendChild(el('button', {class:'img-remove', onclick: () => {
+          imgs.splice(idx, 1);
+          scheduleImageSave(section.id); renderSections();
+        }}, [document.createTextNode('✕')]));
+      }
+      grid.appendChild(tile);
+    });
+    if (!viewMode){
+      const addTile = el('div', {class:'img-add'});
+      addTile.appendChild(el('span', {class:'plus'}, [document.createTextNode('+')]));
+      addTile.appendChild(el('span', {}, [document.createTextNode('이미지 추가')]));
+      const fileInput = el('input', {type:'file', accept:'image/*', multiple:'multiple', style:'display:none'});
+      fileInput.addEventListener('change', (e) => handleFiles(section.id, e.target.files));
+      addTile.addEventListener('click', () => fileInput.click());
+      addTile.addEventListener('dragover', (e) => { e.preventDefault(); addTile.classList.add('dragover'); });
+      addTile.addEventListener('dragleave', () => addTile.classList.remove('dragover'));
+      addTile.addEventListener('drop', (e) => {
+        e.preventDefault(); addTile.classList.remove('dragover');
+        handleFiles(section.id, e.dataTransfer.files);
+      });
+      addTile.appendChild(fileInput);
+      grid.appendChild(addTile);
+    }
+    frag.appendChild(grid);
+    return frag;
+  }
+
+  async function handleFiles(sectionId, fileList){
+    const files = Array.from(fileList).filter(f => f.type.startsWith('image/'));
+    if (files.length === 0) return;
+    if (!imagesCache[sectionId]) imagesCache[sectionId] = [];
+    for (const f of files){
+      try{
+        const dataUrl = await fileToCompressedDataUrl(f);
+        imagesCache[sectionId].push(dataUrl);
+      }catch(e){ console.error('이미지 처리 실패', e); }
+    }
+    scheduleImageSave(sectionId);
+    renderSections();
+  }
+
+  function renderSections(){
+    sectionsContainer.innerHTML = '';
+    document.body.classList.toggle('view-mode', viewMode);
+    addSectionRow.style.display = (!viewMode && currentMeta) ? 'flex' : 'none';
+
+    if (!currentChannelId){
+      sectionsContainer.appendChild(el('div', {class:'empty'}, [
+        el('strong', {}, [document.createTextNode('채널이 없어요')]),
+        document.createTextNode('먼저 채널을 추가해주세요 (예: MK몰, 멘토리)'),
+        el('div', {}, [el('button', {onclick: addChannel}, [document.createTextNode('+ 채널 추가')])])
+      ]));
+      return;
+    }
+    if (!currentYearId){
+      sectionsContainer.appendChild(el('div', {class:'empty'}, [
+        el('strong', {}, [document.createTextNode('연도가 없어요')]),
+        document.createTextNode('이 채널에 연도를 추가해주세요'),
+        el('div', {}, [el('button', {onclick: addYear}, [document.createTextNode('+ 연도 추가')])])
+      ]));
+      return;
+    }
+    if (!currentMonthId){
+      sectionsContainer.appendChild(el('div', {class:'empty'}, [
+        el('strong', {}, [document.createTextNode('월이 없어요')]),
+        document.createTextNode('이 연도에 월을 추가해주세요'),
+        el('div', {}, [el('button', {onclick: addMonth}, [document.createTextNode('+ 월 추가')])])
+      ]));
+      return;
+    }
+    if (!currentWeekId || !currentMeta){
+      sectionsContainer.appendChild(el('div', {class:'empty'}, [
+        el('strong', {}, [document.createTextNode('주차가 없어요')]),
+        document.createTextNode('이 월에 주차를 추가하고 이미지·표를 채워보세요'),
+        el('div', {}, [el('button', {onclick: addWeek}, [document.createTextNode('+ 주차 추가')])])
+      ]));
+      return;
+    }
+
+    currentMeta.sections.forEach((section, idx) => {
+      const typeLabel = section.type === 'message' ? '메시지' : '광고 소재';
+      const head = el('div', {class:'section-head'});
+      head.appendChild(el('span', {class:'section-idx'}, [document.createTextNode(String(idx+1).padStart(2,'0'))]));
+      head.appendChild(el('span', {class:'section-type-tag'}, [document.createTextNode(typeLabel)]));
+
+      if (viewMode){
+        head.appendChild(el('span', {class:'section-title-view'}, [document.createTextNode(section.title || '(제목 없음)')]));
+      } else {
+        const titleInput = el('input', {class:'section-title-input', value: section.title, placeholder:'섹션 제목 (예: MK몰_카플친_통합&라이브)'});
+        titleInput.addEventListener('input', (e) => { section.title = e.target.value; scheduleMetaSave(); });
+        head.appendChild(titleInput);
+      }
+
+      if (!viewMode){
+        const actions = el('div', {class:'section-actions'});
+        if (idx > 0){
+          actions.appendChild(el('button', {class:'mini-btn', title:'위로', onclick: () => {
+            [currentMeta.sections[idx-1], currentMeta.sections[idx]] = [currentMeta.sections[idx], currentMeta.sections[idx-1]];
+            scheduleMetaSave(); renderSections();
+          }}, [document.createTextNode('↑')]));
+        }
+        if (idx < currentMeta.sections.length - 1){
+          actions.appendChild(el('button', {class:'mini-btn', title:'아래로', onclick: () => {
+            [currentMeta.sections[idx+1], currentMeta.sections[idx]] = [currentMeta.sections[idx], currentMeta.sections[idx+1]];
+            scheduleMetaSave(); renderSections();
+          }}, [document.createTextNode('↓')]));
+        }
+        actions.appendChild(el('button', {class:'mini-btn danger', title:'섹션 삭제', onclick: () => {
+          currentMeta.sections.splice(idx, 1);
+          scheduleMetaSave(); renderSections();
+        }}, [document.createTextNode('✕')]));
+        head.appendChild(actions);
+      }
+
+      const body = el('div', {class:'section-body'});
+      body.appendChild(renderImages(section));
+      body.appendChild(renderTable(section));
+
+      const sectionEl = el('div', {class:'section type-' + (section.type === 'message' ? 'message' : 'ad')}, [head, body]);
+      sectionsContainer.appendChild(sectionEl);
+    });
+  }
+
+  document.getElementById('addAdSectionBtn').addEventListener('click', () => {
+    if (!currentMeta) return;
+    currentMeta.sections.push(newSection('ad', ''));
+    scheduleMetaSave(); renderSections();
+    focusLastTitle();
+  });
+  document.getElementById('addMsgSectionBtn').addEventListener('click', () => {
+    if (!currentMeta) return;
+    currentMeta.sections.push(newSection('message', ''));
+    scheduleMetaSave(); renderSections();
+    focusLastTitle();
+  });
+  function focusLastTitle(){
+    setTimeout(() => {
+      const inputs = document.querySelectorAll('.section-title-input');
+      if (inputs.length) inputs[inputs.length - 1].focus();
+    }, 30);
+  }
+
+  document.getElementById('btnEdit').addEventListener('click', () => setMode(false));
+  document.getElementById('btnView').addEventListener('click', () => setMode(true));
+  function setMode(isView){
+    viewMode = isView;
+    document.getElementById('btnEdit').classList.toggle('active', !isView);
+    document.getElementById('btnView').classList.toggle('active', isView);
+    renderAllNav();
+    renderSections();
+  }
+
+  document.addEventListener('paste', (e) => {
+    if (viewMode || !currentMeta || currentMeta.sections.length === 0) return;
+    const items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    const files = [];
+    for (const item of items){
+      if (item.type && item.type.startsWith('image/')){
+        const f = item.getAsFile();
+        if (f) files.push(f);
+      }
+    }
+    if (files.length){
+      const target = currentMeta.sections[currentMeta.sections.length - 1];
+      handleFiles(target.id, files);
+    }
+  });
+
+  // ---------- manual save button ----------
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.addEventListener('click', async () => {
+    saveBtn.disabled = true;
+    await flushSaveAll();
+    saveBtn.disabled = false;
+  });
+  window.addEventListener('beforeunload', (e) => {
+    if (Object.keys(saveTimers).length > 0){
+      flushSaveAll();
+    }
+  });
+
+  // ---------- browse modal (folder-style tree of everything saved) ----------
+  const browseModal = document.getElementById('browseModal');
+  const browseBody = document.getElementById('browseBody');
+  document.getElementById('browseBtn').addEventListener('click', openBrowseModal);
+  document.getElementById('browseCloseBtn').addEventListener('click', closeBrowseModal);
+  document.getElementById('browseRefreshBtn').addEventListener('click', openBrowseModal);
+  browseModal.addEventListener('click', (e) => { if (e.target === browseModal) closeBrowseModal(); });
+
+  function closeBrowseModal(){ browseModal.classList.add('hidden'); }
+
+  async function openBrowseModal(){
+    browseModal.classList.remove('hidden');
+    browseBody.innerHTML = '<div class="modal-loading">불러오는 중…</div>';
+    const tree = await loadFullTree();
+    renderTree(tree);
+  }
+
+  async function loadFullTree(){
+    // For whatever the user currently has open, trust in-memory state directly —
+    // it's guaranteed to match what's on screen even if a storage read races or lags.
+    const chs = channels.length ? channels : await loadIndex(K.channels());
+    const tree = [];
+    for (const ch of chs){
+      const isCurCh = ch.id === currentChannelId;
+      const yrs = isCurCh ? years : await loadIndex(K.years(ch.id));
+      const yearNodes = [];
+      for (const yr of yrs){
+        const isCurYr = isCurCh && yr.id === currentYearId;
+        const mos = isCurYr ? months : await loadIndex(K.months(ch.id, yr.id));
+        const monthNodes = [];
+        for (const mo of mos){
+          const isCurMo = isCurYr && mo.id === currentMonthId;
+          const wks = isCurMo ? weeks : await loadIndex(K.weeks(ch.id, yr.id, mo.id));
+          monthNodes.push({ id: mo.id, label: mo.label, weeks: wks });
+        }
+        yearNodes.push({ id: yr.id, label: yr.label, months: monthNodes });
+      }
+      tree.push({ id: ch.id, label: ch.label, years: yearNodes });
+    }
+    return tree;
+  }
+
+  function renderTree(tree){
+    browseBody.innerHTML = '';
+    if (tree.length === 0){
+      browseBody.appendChild(el('div', {class:'tree-empty-msg'}, [document.createTextNode('아직 저장된 채널이 없습니다')]));
+      return;
+    }
+    tree.forEach(ch => {
+      const chWrap = el('div', {class:'tree-channel'});
+      const chRow = el('div', {class:'tree-row'}, [
+        el('span', {class:'tree-toggle'}, [document.createTextNode('▾')]),
+        el('span', {class:'tree-name'}, [document.createTextNode(ch.label)])
+      ]);
+      const chChildren = el('div', {class:'tree-children'});
+      if (ch.years.length === 0){
+        chChildren.appendChild(el('div', {class:'tree-empty-msg'}, [document.createTextNode('연도 없음')]));
+      }
+      ch.years.forEach(yr => {
+        const yrLevel = el('div', {class:'tree-level-year'});
+        const yrRow = el('div', {class:'tree-row'}, [
+          el('span', {class:'tree-toggle'}, [document.createTextNode('▾')]),
+          el('span', {class:'tree-name'}, [document.createTextNode(yr.label)])
+        ]);
+        yrLevel.appendChild(yrRow);
+        const yrChildren = el('div', {class:'tree-children'});
+        if (yr.months.length === 0){
+          yrChildren.appendChild(el('div', {class:'tree-empty-msg'}, [document.createTextNode('월 없음')]));
+        }
+        yr.months.forEach(mo => {
+          const moLevel = el('div', {class:'tree-level-month'});
+          const moRow = el('div', {class:'tree-row'}, [
+            el('span', {class:'tree-toggle'}, [document.createTextNode('▾')]),
+            el('span', {class:'tree-name'}, [document.createTextNode(mo.label)])
+          ]);
+          moLevel.appendChild(moRow);
+          const moChildren = el('div', {class:'tree-children'});
+          if (mo.weeks.length === 0){
+            moChildren.appendChild(el('div', {class:'tree-empty-msg'}, [document.createTextNode('주차 없음')]));
+          }
+          mo.weeks.forEach(wk => {
+            const wkLevel = el('div', {class:'tree-level-week'});
+            const wkRow = el('div', {class:'tree-row leaf'}, [
+              el('span', {class:'tree-toggle'}, [document.createTextNode('·')]),
+              el('span', {class:'tree-name'}, [document.createTextNode(wk.label)])
+            ]);
+            wkRow.addEventListener('click', () => {
+              closeBrowseModal();
+              navigateTo(ch.id, yr.id, mo.id, wk.id);
+            });
+            wkLevel.appendChild(wkRow);
+            moChildren.appendChild(wkLevel);
+          });
+          moLevel.appendChild(moChildren);
+          yrChildren.appendChild(moLevel);
+        });
+        yrLevel.appendChild(yrChildren);
+        chChildren.appendChild(yrLevel);
+      });
+      chWrap.appendChild(chRow);
+      chWrap.appendChild(chChildren);
+      browseBody.appendChild(chWrap);
+    });
+  }
+
+  async function navigateTo(chId, yrId, moId, wkId){
+    currentChannelId = chId;
+    years = await loadIndex(K.years(chId));
+    currentYearId = yrId;
+    months = await loadIndex(K.months(chId, yrId));
+    currentMonthId = moId;
+    weeks = await loadIndex(K.weeks(chId, yrId, moId));
+    await selectWeek(wkId);
+  }
+
+  // ---------- storage self-test ----------
+  async function testStorageWorks(){
+    try{
+      const probe = 'p-' + Date.now();
+      const setOk = await storageSet('__probe__', probe);
+      if (!setOk) return false;
+      const back = await storageGet('__probe__');
+      await storageDelete('__probe__');
+      return back === probe;
+    }catch(e){ return false; }
+  }
+
+  // ---------- export / import (guaranteed backup, independent of storage reliability) ----------
+  function mergeById(existing, incoming){
+    const map = new Map((existing||[]).map(x => [x.id, x]));
+    (incoming||[]).forEach(x => map.set(x.id, x));
+    return [...map.values()];
+  }
+
+  async function exportAll(){
+    const chs = channels.length ? channels : await loadIndex(K.channels());
+    const bundle = { version: 1, exportedAt: new Date().toISOString(), channels: chs, years:{}, months:{}, weeks:{}, weekMeta:{}, images:{} };
+    for (const ch of chs){
+      const isCurCh = ch.id === currentChannelId;
+      const yrs = isCurCh ? years : await loadIndex(K.years(ch.id));
+      bundle.years[ch.id] = yrs;
+      for (const yr of yrs){
+        const isCurYr = isCurCh && yr.id === currentYearId;
+        const mos = isCurYr ? months : await loadIndex(K.months(ch.id, yr.id));
+        bundle.months[`${ch.id}:${yr.id}`] = mos;
+        for (const mo of mos){
+          const isCurMo = isCurYr && mo.id === currentMonthId;
+          const wks = isCurMo ? weeks : await loadIndex(K.weeks(ch.id, yr.id, mo.id));
+          bundle.weeks[`${ch.id}:${yr.id}:${mo.id}`] = wks;
+          for (const wk of wks){
+            const meta = (wk.id === currentWeekId && currentMeta) ? currentMeta : await loadWeekMeta(wk.id);
+            if (!meta) continue;
+            bundle.weekMeta[wk.id] = meta;
+            for (const s of meta.sections){
+              const imgs = (wk.id === currentWeekId && imagesCache[s.id]) ? imagesCache[s.id] : await loadImagesFor(s.id);
+              bundle.images[s.id] = imgs;
+            }
+          }
+        }
+      }
+    }
+    const blob = new Blob([JSON.stringify(bundle)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const ts = new Date().toISOString().slice(0,10);
+    a.href = url;
+    a.download = `광고성과리포트_백업_${ts}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    flashSaved('백업 파일 다운로드됨');
+  }
+
+  async function importAll(file){
+    let bundle;
+    try{
+      const text = await file.text();
+      bundle = JSON.parse(text);
+    }catch(e){
+      alert('올바른 백업 파일이 아닙니다.');
+      return;
+    }
+    if (!bundle || !Array.isArray(bundle.channels)){
+      alert('올바른 백업 파일이 아닙니다.');
+      return;
+    }
+    if (!confirm('백업 파일을 불러올까요? 같은 항목(채널/연도/월/주차)은 백업 파일 내용으로 덮어씁니다.')) return;
+
+    channels = mergeById(channels, bundle.channels);
+    await saveIndex(K.channels(), channels);
+
+    for (const ch of bundle.channels){
+      const yrs = bundle.years[ch.id] || [];
+      const existingYrs = await loadIndex(K.years(ch.id));
+      const mergedYrs = mergeById(existingYrs, yrs);
+      await saveIndex(K.years(ch.id), mergedYrs);
+      for (const yr of yrs){
+        const mos = bundle.months[`${ch.id}:${yr.id}`] || [];
+        const existingMos = await loadIndex(K.months(ch.id, yr.id));
+        const mergedMos = mergeById(existingMos, mos);
+        await saveIndex(K.months(ch.id, yr.id), mergedMos);
+        for (const mo of mos){
+          const wks = bundle.weeks[`${ch.id}:${yr.id}:${mo.id}`] || [];
+          const existingWks = await loadIndex(K.weeks(ch.id, yr.id, mo.id));
+          const mergedWks = mergeById(existingWks, wks);
+          await saveIndex(K.weeks(ch.id, yr.id, mo.id), mergedWks);
+          for (const wk of wks){
+            const meta = bundle.weekMeta[wk.id];
+            if (!meta) continue;
+            await storageSet(K.weekMeta(wk.id), JSON.stringify(meta));
+            for (const s of meta.sections){
+              const imgs = bundle.images[s.id] || [];
+              await storageSet(K.images(s.id), JSON.stringify(imgs));
+            }
+          }
+        }
+      }
+    }
+    flashSaved('불러오기 완료');
+    if (channels.length) await selectChannel(channels[channels.length - 1].id);
+  }
+
+  document.getElementById('exportBtn').addEventListener('click', exportAll);
+  document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click());
+  document.getElementById('importFile').addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    if (f) importAll(f);
+    e.target.value = '';
+  });
+
+  // ---------- init ----------
+  async function init(){
+    sectionsContainer.innerHTML = '<div class="empty"><strong>불러오는 중…</strong>잠시만 기다려주세요</div>';
+    const storageOk = await testStorageWorks();
+    if (!storageOk){
+      document.getElementById('storageWarning').classList.remove('hidden');
+    }
+    channels = await loadIndex(K.channels());
+    renderAllNav();
+    if (channels.length){
+      await selectChannel(channels[channels.length - 1].id);
+    } else {
+      renderSections();
+    }
+  }
+  init();
+})();
+</script>
+</body>
+</html>
