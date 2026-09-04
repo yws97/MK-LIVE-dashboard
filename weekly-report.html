@@ -3,39 +3,42 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>광고 성과 리포트</title>
+<title>마더케이 광고 성과 리포트</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
   :root{
-    --paper:#EFEDE6;
-    --paper-alt:#E7E2D6;
-    --card:#FBFAF7;
-    --ink:#24231F;
-    --ink-soft:#5B584E;
-    --ink-faint:#8B8878;
-    --line:#D9D3C6;
-    --line-strong:#C8C1B1;
-    --teal:#2F6B5E;
-    --teal-bg:#E4EDE9;
+    /* 마더케이 브랜드 톤: 티파니 톤 라이트 틸 + 딥 틸 + 블랙/화이트 */
+    --paper:#FFFFFF;
+    --paper-alt:#EEF6F6;
+    --card:#FFFFFF;
+    --ink:#111111;
+    --ink-soft:#4A4A4A;
+    --ink-faint:#8B9494;
+    --line:#DCE7E7;
+    --line-strong:#BFD2D2;
+    --teal:#0B4A55;
+    --teal-bg:#E3F1F2;
+    --teal-light:#6FC7CE;
+    --teal-light-bg:#E9F7F8;
     --rust:#A8532E;
     --rust-bg:#F3E6DE;
-    --mustard:#C89B3C;
-    --mustard-bg:#F3E9D2;
+    --mustard:#3FA8AF;
+    --mustard-bg:#E9F7F8;
     --white:#FFFFFF;
-    --radius:2px;
+    --radius:3px;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
     background:var(--paper);
     color:var(--ink);
-    font-family:'Noto Sans KR',sans-serif;
+    font-family:'Malgun Gothic','맑은 고딕','Apple SD Gothic Neo',AppleGothic,'Noto Sans KR',sans-serif;
     -webkit-font-smoothing:antialiased;
     min-height:100vh;
   }
-  ::selection{background:var(--mustard);color:var(--ink);}
+  ::selection{background:var(--teal-light);color:var(--ink);}
   .wrap{max-width:1040px;margin:0 auto;padding:36px 28px 120px;}
 
   /* header */
@@ -46,7 +49,7 @@
     gap:16px;flex-wrap:wrap;
   }
   .brand h1{
-    font-family:'Noto Serif KR',serif;
+    font-family:'Malgun Gothic','맑은 고딕','Apple SD Gothic Neo',AppleGothic,sans-serif;font-weight:800;
     font-weight:700;
     font-size:25px;
     margin:0 0 4px;
@@ -106,7 +109,7 @@
     display:flex;justify-content:space-between;align-items:center;
     padding:16px 20px;border-bottom:2px solid var(--ink);flex-shrink:0;
   }
-  .modal-head h2{font-family:'Noto Serif KR',serif;font-size:18px;margin:0;font-weight:700;}
+  .modal-head h2{font-family:'Malgun Gothic','맑은 고딕','Apple SD Gothic Neo',AppleGothic,sans-serif;font-weight:800;font-size:18px;margin:0;font-weight:700;}
   .modal-close{border:none;background:none;font-size:20px;color:var(--ink-soft);cursor:pointer;line-height:1;padding:2px 6px;}
   .modal-close:hover{color:var(--rust);}
   .modal-body{padding:8px 20px 20px;overflow-y:auto;}
@@ -114,7 +117,7 @@
   .list-channel-group{margin-bottom:22px;}
   .list-channel-group:last-child{margin-bottom:0;}
   .list-channel-head{
-    font-family:'Noto Serif KR',serif;font-weight:700;font-size:15.5px;
+    font-family:'Malgun Gothic','맑은 고딕','Apple SD Gothic Neo',AppleGothic,sans-serif;font-weight:800;font-weight:700;font-size:15.5px;
     color:var(--ink);padding:8px 10px;background:var(--paper-alt);
     border-left:3px solid var(--teal);margin-bottom:2px;
   }
@@ -168,7 +171,7 @@
     border:1px dashed var(--line-strong);padding:56px 30px;text-align:center;
     color:var(--ink-soft);font-size:14px;background:var(--card);
   }
-  .empty strong{display:block;font-family:'Noto Serif KR',serif;font-size:18px;color:var(--ink);margin-bottom:8px;font-weight:600;}
+  .empty strong{display:block;font-family:'Malgun Gothic','맑은 고딕','Apple SD Gothic Neo',AppleGothic,sans-serif;font-weight:800;font-size:18px;color:var(--ink);margin-bottom:8px;font-weight:600;}
   .empty button{
     margin-top:18px;background:var(--ink);color:var(--white);border:none;
     padding:10px 22px;font-size:13.5px;font-weight:600;border-radius:var(--radius);cursor:pointer;
@@ -186,7 +189,7 @@
     padding:16px 20px;border-bottom:1px solid var(--line);
   }
   .section-idx{
-    font-family:'Noto Serif KR',serif;font-weight:600;font-size:14px;
+    font-family:'Malgun Gothic','맑은 고딕','Apple SD Gothic Neo',AppleGothic,sans-serif;font-weight:800;font-weight:600;font-size:14px;
     color:var(--ink-soft);flex-shrink:0;min-width:22px;
   }
   .section-type-tag{
@@ -195,12 +198,12 @@
   .type-ad .section-type-tag{background:var(--teal-bg);color:var(--teal);}
   .type-message .section-type-tag{background:var(--mustard-bg);color:#8a6a1f;}
   .section-title-input{
-    flex:1;font-family:'Noto Serif KR',serif;font-weight:600;font-size:17px;
+    flex:1;font-family:'Malgun Gothic','맑은 고딕','Apple SD Gothic Neo',AppleGothic,sans-serif;font-weight:800;font-weight:600;font-size:17px;
     border:none;background:none;color:var(--ink);padding:4px 2px;min-width:0;
   }
   .section-title-input:focus{outline:none;border-bottom:1px solid var(--ink);}
   .section-title-view{
-    flex:1;font-family:'Noto Serif KR',serif;font-weight:600;font-size:17px;color:var(--ink);
+    flex:1;font-family:'Malgun Gothic','맑은 고딕','Apple SD Gothic Neo',AppleGothic,sans-serif;font-weight:800;font-weight:600;font-size:17px;color:var(--ink);
   }
   .section-actions{display:flex;gap:4px;flex-shrink:0;}
   .mini-btn{
@@ -331,64 +334,138 @@
     table.data-table{font-size:12px;}
     .nav-label{width:auto;margin-right:2px;}
   }
+
+  /* ---- home screen ---- */
+  #homeScreen.hidden, #editorScreen.hidden{display:none;}
+  #homeScreen{
+    min-height:80vh;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;text-align:center;gap:34px;padding:20px 0;
+  }
+  .home-band{max-width:560px;}
+  .home-band-label{
+    font-size:11.5px;font-weight:700;letter-spacing:0.14em;color:var(--teal);margin-bottom:14px;
+  }
+  .home-title{
+    font-size:34px;line-height:1.28;font-weight:900;color:var(--ink);margin:0 0 14px;
+    letter-spacing:-0.01em;
+  }
+  .home-title .accent{color:var(--teal);}
+  .home-sub{font-size:14.5px;color:var(--ink-soft);margin:0;line-height:1.6;}
+  .home-actions{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;}
+  .home-card{
+    width:250px;text-align:left;border:none;border-radius:6px;padding:26px 22px;
+    cursor:pointer;display:flex;flex-direction:column;gap:8px;
+    transition:transform .12s ease;
+  }
+  .home-card:hover{transform:translateY(-3px);}
+  .home-card.create{background:var(--teal);color:#fff;}
+  .home-card.load{background:var(--teal-light);color:var(--teal);}
+  .home-card-label{font-size:18px;font-weight:800;}
+  .home-card-desc{font-size:12.5px;line-height:1.5;opacity:0.92;}
+  .home-card.create .home-card-desc{color:#DCEEEF;opacity:1;}
+  .home-card.load .home-card-desc{color:#0B4A55;opacity:0.75;}
+  .home-footer-links{font-size:12px;color:var(--ink-faint);}
+  .home-footer-links .dot{margin:0 8px;}
+  .text-link-btn{
+    border:none;background:none;color:var(--ink-faint);font-size:12px;
+    text-decoration:underline;cursor:pointer;padding:0;font-family:inherit;
+  }
+  .text-link-btn:hover{color:var(--teal);}
+  #homeScreen .storage-warning{margin-top:10px;max-width:520px;}
+  .home-btn{
+    border:1px solid var(--line-strong);background:var(--card);color:var(--ink);
+    font-size:13px;font-weight:600;padding:6px 12px;border-radius:var(--radius);
+    cursor:pointer;flex-shrink:0;margin-right:14px;height:34px;
+  }
+  .home-btn:hover{border-color:var(--teal);color:var(--teal);}
+  header.top .brand{display:flex;align-items:center;gap:0;}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header class="top">
-    <div class="brand">
-      <h1>광고 성과 리포트</h1>
-      <p class="breadcrumb" id="breadcrumb">채널을 선택하거나 추가해주세요</p>
+
+  <!-- ================= HOME SCREEN ================= -->
+  <div id="homeScreen">
+    <div class="home-band">
+      <div class="home-band-label">MOTHER-K MARKETING</div>
+      <h1 class="home-title">출산준비도 선물도<br>일단 <span class="accent">광고 리포트</span>.</h1>
+      <p class="home-sub">채널·연도·월·주차별로 정리되는 마더케이 주간 광고 성과 대시보드</p>
     </div>
-    <div class="header-actions">
-      <button class="browse-btn" id="browseBtn">전체 목록</button>
-      <button class="browse-btn" id="exportBtn">내보내기</button>
-      <button class="browse-btn" id="importBtn">불러오기</button>
+    <div class="home-actions">
+      <button class="home-card create" id="homeCreateBtn">
+        <span class="home-card-label">새 리포트 만들기</span>
+        <span class="home-card-desc">이번 주 소재·성과 데이터를 새로 입력합니다</span>
+      </button>
+      <button class="home-card load" id="homeLoadBtn">
+        <span class="home-card-label">불러오기</span>
+        <span class="home-card-desc">저장된 채널·연도·월·주차 데이터를 확인합니다</span>
+      </button>
+    </div>
+    <div class="home-footer-links">
+      <button class="text-link-btn" id="homeExportBtn">백업 저장</button>
+      <span class="dot">·</span>
+      <button class="text-link-btn" id="homeImportBtn">백업 복원</button>
       <input type="file" id="importFile" accept="application/json" style="display:none">
-      <div class="save-cluster">
-        <button class="save-btn" id="saveBtn">지금 저장</button>
-        <span class="save-status" id="saveStatus">저장된 변경사항 없음</span>
+    </div>
+    <div class="storage-warning hidden" id="storageWarning">
+      ⚠ 이 브라우저에서는 저장 기능(IndexedDB)을 사용할 수 없어요 — 시크릿/프라이빗 모드이거나 브라우저 설정에서 차단되어 있을 수 있습니다. 일반 창에서 열거나, "백업 저장"으로 파일을 꼭 백업해주세요.
+    </div>
+  </div>
+
+  <!-- ================= EDITOR SCREEN ================= -->
+  <div id="editorScreen" class="hidden">
+    <header class="top">
+      <div class="brand">
+        <button class="home-btn" id="goHomeBtn">‹ 홈</button>
+        <div>
+          <h1>마더케이 광고 성과 리포트</h1>
+          <p class="breadcrumb" id="breadcrumb">채널을 선택하거나 추가해주세요</p>
+        </div>
       </div>
-      <div class="mode-toggle">
-        <button id="btnEdit" class="active">편집</button>
-        <button id="btnView">보기</button>
+      <div class="header-actions">
+        <button class="browse-btn" id="browseBtn">불러오기</button>
+        <div class="save-cluster">
+          <button class="save-btn" id="saveBtn">지금 저장</button>
+          <span class="save-status" id="saveStatus">저장된 변경사항 없음</span>
+        </div>
+        <div class="mode-toggle">
+          <button id="btnEdit" class="active">편집</button>
+          <button id="btnView">보기</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="nav-levels">
+      <div class="nav-level" id="rowChannel">
+        <span class="nav-label">채널</span>
+        <div class="nav-tabs" id="tabsChannel"></div>
+      </div>
+      <div class="nav-level" id="rowYear">
+        <span class="nav-label">연도</span>
+        <div class="nav-tabs" id="tabsYear"></div>
+      </div>
+      <div class="nav-level" id="rowMonth">
+        <span class="nav-label">월</span>
+        <div class="nav-tabs" id="tabsMonth"></div>
+      </div>
+      <div class="nav-level" id="rowWeek">
+        <span class="nav-label">주차</span>
+        <div class="nav-tabs" id="tabsWeek"></div>
       </div>
     </div>
-  </header>
 
-  <div class="storage-warning hidden" id="storageWarning">
-    ⚠ 이 브라우저에서는 저장 기능(IndexedDB)을 사용할 수 없어요 — 시크릿/프라이빗 모드이거나 브라우저 설정에서 차단되어 있을 수 있습니다. 일반 창에서 열거나, 작업 후 "내보내기"로 파일을 꼭 백업해주세요.
+    <main id="sectionsContainer"></main>
+
+    <div class="add-section-row" id="addSectionRow" style="display:none;">
+      <button class="add-section-btn ad" id="addAdSectionBtn">+ 광고 소재 섹션 추가 (이미지 여러 장 + 프로모션 표)</button>
+      <button class="add-section-btn message" id="addMsgSectionBtn">+ 메시지 섹션 추가 (발송 배너 + 메시지별 성과표)</button>
+    </div>
+
+    <footer class="note">
+      이 파일은 오픈 후 브라우저(이 기기·이 브라우저)에 안전하게 저장됩니다 · 다른 사람과 공유하려면 "백업 저장"으로 받은 파일을 전달해주세요 · 이미지는 자동으로 압축되어 저장됩니다
+    </footer>
   </div>
 
-  <div class="nav-levels">
-    <div class="nav-level" id="rowChannel">
-      <span class="nav-label">채널</span>
-      <div class="nav-tabs" id="tabsChannel"></div>
-    </div>
-    <div class="nav-level" id="rowYear">
-      <span class="nav-label">연도</span>
-      <div class="nav-tabs" id="tabsYear"></div>
-    </div>
-    <div class="nav-level" id="rowMonth">
-      <span class="nav-label">월</span>
-      <div class="nav-tabs" id="tabsMonth"></div>
-    </div>
-    <div class="nav-level" id="rowWeek">
-      <span class="nav-label">주차</span>
-      <div class="nav-tabs" id="tabsWeek"></div>
-    </div>
-  </div>
-
-  <main id="sectionsContainer"></main>
-
-  <div class="add-section-row" id="addSectionRow" style="display:none;">
-    <button class="add-section-btn ad" id="addAdSectionBtn">+ 광고 소재 섹션 추가 (이미지 여러 장 + 프로모션 표)</button>
-    <button class="add-section-btn message" id="addMsgSectionBtn">+ 메시지 섹션 추가 (발송 배너 + 메시지별 성과표)</button>
-  </div>
-
-  <footer class="note">
-    이 파일은 오픈 후 브라우저(이 기기·이 브라우저)에 안전하게 저장됩니다 · 다른 사람과 공유하려면 상단 "내보내기"로 받은 파일을 전달하거나, 이 HTML 파일 자체를 함께 열람용으로 전달해주세요 · 이미지는 자동으로 압축되어 저장됩니다
-  </footer>
 </div>
 
 <div class="save-indicator" id="saveIndicator">저장됨</div>
@@ -396,7 +473,7 @@
 <div class="modal-backdrop hidden" id="browseModal">
   <div class="modal-panel">
     <div class="modal-head">
-      <h2>전체 목록</h2>
+      <h2>불러오기</h2>
       <div style="display:flex;gap:8px;align-items:center;">
         <button class="icon-btn" id="browseRefreshBtn">새로고침</button>
         <button class="modal-close" id="browseCloseBtn">✕</button>
@@ -1248,6 +1325,7 @@
         rows.forEach(r => {
           const row = el('div', {class:'list-week-row', onclick: () => {
             closeBrowseModal();
+            showEditor();
             navigateTo(ch.id, r.yr.id, r.mo.id, r.wk.id);
           }}, [
             el('span', {class:'list-week-path'}, [document.createTextNode(`${r.yr.label} › ${r.mo.label}`)]),
@@ -1378,13 +1456,38 @@
     if (channels.length) await selectChannel(channels[channels.length - 1].id);
   }
 
-  document.getElementById('exportBtn').addEventListener('click', exportAll);
-  document.getElementById('importBtn').addEventListener('click', () => document.getElementById('importFile').click());
+  document.getElementById('homeExportBtn').addEventListener('click', exportAll);
+  document.getElementById('homeImportBtn').addEventListener('click', () => document.getElementById('importFile').click());
   document.getElementById('importFile').addEventListener('change', (e) => {
     const f = e.target.files[0];
     if (f) importAll(f);
     e.target.value = '';
   });
+
+  // ---------- home / editor screen switching ----------
+  function showHome(){
+    document.getElementById('homeScreen').classList.remove('hidden');
+    document.getElementById('editorScreen').classList.add('hidden');
+  }
+  function showEditor(){
+    document.getElementById('homeScreen').classList.add('hidden');
+    document.getElementById('editorScreen').classList.remove('hidden');
+  }
+  async function goCreateNew(){
+    showEditor();
+    if (!currentChannelId && channels.length){
+      await selectChannel(channels[channels.length - 1].id);
+    }
+    if (currentChannelId && currentYearId && currentMonthId){
+      await addWeek();
+    } else {
+      renderAllNav();
+      renderSections();
+    }
+  }
+  document.getElementById('homeCreateBtn').addEventListener('click', goCreateNew);
+  document.getElementById('homeLoadBtn').addEventListener('click', openBrowseModal);
+  document.getElementById('goHomeBtn').addEventListener('click', showHome);
 
   // ---------- init ----------
   async function init(){
@@ -1395,11 +1498,8 @@
     }
     channels = await loadIndex(K.channels());
     renderAllNav();
-    if (channels.length){
-      await selectChannel(channels[channels.length - 1].id);
-    } else {
-      renderSections();
-    }
+    renderSections();
+    // Land on the home screen — the editor is reached via "새 리포트 만들기" or "불러오기".
   }
   init();
 })();
